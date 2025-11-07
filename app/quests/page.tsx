@@ -100,9 +100,9 @@ export default function QuestsPage() {
                                     ? 'bg-blue-500 text-white'
                                     : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                             }`}
-                            title="Graph view coming soon"
+                            title="Graph view "
                         >
-                            Graph View (Coming Soon)
+                            Graph View
                         </button>
                     </div>
                 </div>
