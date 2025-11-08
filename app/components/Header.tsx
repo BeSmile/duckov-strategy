@@ -29,14 +29,15 @@ export default function Header() {
                 <div className="flex items-center justify-between h-16">
                     {/* Logo/Brand */}
                     <Link href="/" className="flex items-center gap-3 group">
-                        <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
+                        <div className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors whitespace-nowrap">
                             逃离鸭科夫
                         </div>
                     </Link>
 
                     {/* Navigation Links & Language Switcher */}
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1">
+                        {/* gap-1 会导致 lg:flex失效 */}
+                        <div className="hidden lg:flex items-center">
                             {navLinks.map((link) => (
                                 <Link
                                     key={link.href}
