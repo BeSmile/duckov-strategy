@@ -1,60 +1,18 @@
 ﻿key,value
-Tag_Accessory,配件
-Tag_Armor,身体
-Tag_Backpack,背包
-Tag_Blueprint,蓝图
-Tag_Bullet,武器
-Tag_Character,角色
-Tag_Continer,容器
-Tag_Daily,日常用品
-Tag_DecorateEquipment,装饰性装备
-Tag_DestroyOnLootBox,玩家不可见
-Tag_DontDropOnDead,绑定物品
-Tag_Drink,饮品
-Tag_DuckStone,鸭石
-Tag_Electric,电子产品
-Tag_Equipment,装备
-Tag_Explosive,爆炸物
-Tag_Food,食物
-Tag_Gem,宝石
-Tag_Grip,握把
-Tag_Gun,枪械
-Tag_GunType_Rifle,步枪
-Tag_GunType_Shot,霰弹枪
-Tag_GunType_SMG,冲锋枪
-Tag_GunType_Sniper,狙击枪
-Tag_Helmat,头部
-Tag_Information,情报物品
-Tag_Key,钥匙
-Tag_Luxury,奢侈品
-Tag_Magazine,弹夹
-Tag_Material,材料
-Tag_Medic,医疗用品
-Tag_Misc,杂物
-Tag_Muzzle,枪口
-Tag_Quest,任务物品
-Tag_Scope,瞄具
-Tag_Special,特殊
-Tag_Stock,枪托
-Tag_TecEquip,战术
-Tag_Tool,工具
-Tag_Weapon,武器
-Tag_Weapon_LV1,低级武器
-Tag_Totem,图腾
-Tag_DestroyInBase,无法带出
-Tag_DestroyInBase_Desc,回到地堡时，此物品会消失。
-Tag_MeleeWeapon,近战武器
-Tag_Formula,配方
-Tag_Formula_Desc,用于制造的配方或图纸
-Tag_Formula_Blueprint,高级工作台蓝图
-Tag_Formula_Blueprint_Desc,在高级工作台制造物品的蓝图。
-Tag_Formula_Normal,工作台配方
-Tag_Formula_Normal_Desc,在工作台制作物品的配方。
-Tag_DontDropOnDead_Desc,绑定物品在角色死亡时不会掉落。
-Tag_Accessory_Desc,可安装配件。
-Tag_Formula_Medic,医疗站配方,2024/12/25 17:55:56
-Tag_Formula_Medic_Desc,在医疗站生产药剂的配方。,2024/12/23 18:02:00
-Tag_ComputerParts_GPU,显卡,2024/12/24 15:06:23
-Tag_ComputerParts_GPU_Desc,显卡！,2024/12/24 15:06:37
-Tag_Repairable,可维修,2025/1/9 10:19:05
-Tag_Repairable_Desc,可以在高级工作台进行维修。,2025/1/9 10:19:17
+Tag_Cash,现金
+Tag_NotForSell,不可售卖
+Tag_ColorCard,颜色卡
+Tag_Monitor,显示器
+Tag_FaceMask,面罩
+Tag_Injector,注射器
+Tag_Healing,治疗
+Tag_GunType_AR,突击步枪
+Tag_GunType_BR,战斗步枪
+Tag_GunType_MAG,机枪
+Tag_GunType_PST,手枪
+Tag_GunType_Rocket,火箭发射器
+Tag_GunType_SHT,霰弹枪
+Tag_GunType_SNP,狙击步枪
+Tag_Computer,计算机
+Tag_Element,元素弹
+Tag_DontDropOnDeadInSlot,穿戴死亡不掉落
