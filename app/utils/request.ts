@@ -1,10 +1,12 @@
 import path from 'path';
 import fs from 'fs';
 import { KeyValue } from '@/app/types/item';
-import { EnumKeys } from '@/app/constants';
+import { EnumKeys, languages } from '@/app/constants';
+import { Language } from '@/app/i18n/config';
 
 export function generateKeyValueFetch<T extends EnumKeys>(key: T) {
-    return function fetchFn(lang: string) {
+    return function fetchFn(locale: Language) {
+        const lang: string = languages[locale].dir;
         const filePath = path.join(
             process.cwd(),
             'public',

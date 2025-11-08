@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 interface PaginationProps {
     currentPage: number;
@@ -14,6 +15,7 @@ export default function Pagination({
     totalPages,
     baseUrl,
 }: PaginationProps) {
+    const { t } = useTranslation();
     const searchParams = useSearchParams();
 
     // Build URL with current search params
@@ -68,11 +70,11 @@ export default function Pagination({
                     href={buildUrl(currentPage - 1)}
                     className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                    Previous
+                    {t('common.previous')}
                 </Link>
             ) : (
                 <span className="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg cursor-not-allowed">
-                    Previous
+                    {t('common.previous')}
                 </span>
             )}
 
@@ -115,11 +117,11 @@ export default function Pagination({
                     href={buildUrl(currentPage + 1)}
                     className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                    Next
+                    {t('common.next')}
                 </Link>
             ) : (
                 <span className="px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg cursor-not-allowed">
-                    Next
+                    {t('common.next')}
                 </span>
             )}
         </div>

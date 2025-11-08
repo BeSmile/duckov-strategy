@@ -8,6 +8,7 @@ import {
     useCallback,
     useRef,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface SearchFilterProps {
     allTags: string[];
@@ -17,6 +18,7 @@ export default function SearchFilter({ allTags }: SearchFilterProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const filterRef = useRef<HTMLInputElement>(null);
+    const { t } = useTranslation();
 
     const [searchTerm, setSearchTerm] = useState(
         searchParams.get('search') || ''
@@ -97,14 +99,14 @@ export default function SearchFilter({ allTags }: SearchFilterProps) {
                             type="text"
                             value={searchTerm}
                             onChange={(e) => handleSearchChange(e.target.value)}
-                            placeholder="Search by ID, name, or localized name..."
+                            placeholder={t('inventory.search_placeholder')}
                             className="w-full px-4 py-2 pr-20 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                         <button
                             type="submit"
                             className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded transition-colors"
                         >
-                            Search
+                            {t('inventory.search')}
                         </button>
                     </div>
                 </form>
@@ -116,7 +118,7 @@ export default function SearchFilter({ allTags }: SearchFilterProps) {
                         className="w-full sm:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between gap-2"
                     >
                         <span>
-                            Tags{' '}
+                            {t('inventory.tags')}{' '}
                             {selectedTags.length > 0 &&
                                 `(${selectedTags.length})`}
                         </span>
@@ -167,7 +169,7 @@ export default function SearchFilter({ allTags }: SearchFilterProps) {
                         onClick={handleClearFilters}
                         className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
-                        Clear
+                        {t('inventory.clear_filters')}
                     </button>
                 )}
             </div>
@@ -176,11 +178,11 @@ export default function SearchFilter({ allTags }: SearchFilterProps) {
             {hasActiveFilters && (
                 <div className="flex flex-wrap gap-2 items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Active filters:
+                        {t('inventory.active_filters')}:
                     </span>
                     {searchTerm && (
                         <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm">
-                            Search: {searchTerm}
+                            {t('inventory.search')}: {searchTerm}
                         </span>
                     )}
                     {selectedTags.map((tag) => (

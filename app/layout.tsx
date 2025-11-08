@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Header from './components/Header';
+import I18nProvider from './components/I18nProvider';
 import './globals.css';
+import { ReactNode } from 'react';
 
 // import {Geist, Geist_Mono} from "next/font/google";
 // const geistSans = Geist({
@@ -24,13 +26,15 @@ export const metadata: Metadata = {
 export default function RootLayout({
     children,
 }: Readonly<{
-    children: React.ReactNode;
+    children: ReactNode;
 }>) {
     return (
         <html lang="en">
             <body className="antialiased">
-                <Header />
-                {children}
+                <I18nProvider>
+                    <Header />
+                    {children}
+                </I18nProvider>
             </body>
         </html>
     );

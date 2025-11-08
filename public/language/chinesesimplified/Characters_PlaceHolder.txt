@@ -1,8 +1,8 @@
 Cname_Mushroom,蘑菇
 Cname_BALeader,BA队长
-Cname_BALeader_Child,BA队长成员
+Cname_BALeader_Child,BA成员
 Cname_Prison_Boss,典狱长
-Cname_Prison,监狱长
+Cname_Prison,近战狱卒
 Cname_Boss_Fly,蝇蝇队长
 Cname_Boss_Fly_Child,蝇蝇队长(成员)
 Cname_3Shot_Child,三枪哥
@@ -21,7 +21,12 @@ Cname_StormBoss2,咕噜咕噜
 Cname_StormBoss4,比利比利
 Cname_Roadblock,路障
 Cname_XING,大兴兴
+Cname_XINGS,小小兴
 Cname_Boss_Shot,喷子
 Cname_Raider,游荡者
-Cname_StormBoss5,蝇蝇队长(实验室)
-Cname_SchoolBully_Child,校霸(成员)
+Cname_DengWolf,劳登的狗
+Cname_ServerGuardian,矿长
+Cname_StormBoss1,噗咙噗咙
+Cname_StormBoss1_Child,噗咙
+Cname_StormBoss5,口口口口
+Cname_SchoolBully_Child,校友

@@ -3,8 +3,10 @@ import Pagination from '@/app/components/Pagination';
 import SearchFilter from '@/app/components/SearchFilter';
 import { Item } from '@/app/types/item';
 import { fetchAllByFile, generateKeyValueFetch } from '@/app/utils/request';
-import { ITEM_KEY, LANG, TAG_KEY } from '@/app/constants';
+import { ITEM_KEY, TAG_KEY } from '@/app/constants';
 import { Suspense } from 'react';
+import { getLocale } from '@/app/actions/cookies';
+import { getServerTranslation } from '@/app/i18n/server';
 
 const ITEMS_PER_PAGE = 20; // 分页
 
@@ -20,11 +22,13 @@ export default async function Home({ searchParams }: HomeProps) {
     const currentPage = Number(params.page) || 1;
     const searchTerm = params.search?.toLowerCase() || '';
     const selectedTags = params.tags?.split(',').filter(Boolean) || [];
+    const lang = await getLocale();
+    const { t } = await getServerTranslation();
 
     // Fetch all data
     const allData = fetchAllByFile<Item[]>('items.json');
-    const langs = fetchItemI18(LANG[0]);
-    const tags = fetchTags(LANG[0]);
+    const langs = fetchItemI18(lang);
+    const tags = fetchTags(lang);
 
     // Collect all unique tags for filter dropdown
     const allUniqueTags = Array.from(
@@ -84,14 +88,14 @@ export default async function Home({ searchParams }: HomeProps) {
             <main className="max-w-7xl mx-auto">
                 <div className="mb-8">
                     <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                        Items & Inventory
+                        {await t('inventory.title')}
                     </h1>
                     <p className="text-gray-600 dark:text-gray-400">
-                        Total: {allData.length} items
+                        {await t('common.total')}: {allData.length} {await t('inventory.items')}
                         {totalItems !== allData.length &&
-                            ` | Filtered: ${totalItems} items`}
+                            ` | ${await t('common.filtered')}: ${totalItems} ${await t('inventory.items')}`}
                         {totalItems > 0 &&
-                            ` | Page ${validPage} of ${totalPages}`}
+                            ` | ${await t('common.page')} ${validPage} ${await t('common.of')} ${totalPages}`}
                     </p>
                 </div>
 
@@ -136,10 +140,10 @@ export default async function Home({ searchParams }: HomeProps) {
                 ) : (
                     <div className="text-center py-12">
                         <p className="text-xl text-gray-500 dark:text-gray-400">
-                            No items found matching your search criteria.
+                            {await t('inventory.no_results')}
                         </p>
                         <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                            Try adjusting your filters or search term.
+                            {await t('inventory.try_adjust_filters')}
                         </p>
                     </div>
                 )}

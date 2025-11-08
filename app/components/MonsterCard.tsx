@@ -1,8 +1,11 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Monster } from '../types/monster';
 import { Item, KeyValue } from '../types/item';
 import { getName } from '@/app/components/ItemCard';
+import { useTranslation } from 'react-i18next';
 
 interface MonsterCardProps {
     monster: Monster;
@@ -17,6 +20,8 @@ export default function MonsterCard({
     monsterLangs,
     itemsLangs,
 }: MonsterCardProps) {
+    const { t } = useTranslation();
+
     // Get items from drops
     const dropItems = monster.itemsToGenerate
         .flatMap((drop) =>
@@ -53,14 +58,16 @@ export default function MonsterCard({
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex items-center gap-2">
-                        <span className="text-red-500 font-semibold">HP:</span>
+                        <span className="text-red-500 font-semibold">
+                            {t('monsters.hp')}:
+                        </span>
                         <span className="text-gray-900 dark:text-gray-100 font-medium">
                             {monster.health}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-blue-500 font-semibold">
-                            EXP:
+                            {t('monsters.exp')}:
                         </span>
                         <span className="text-gray-900 dark:text-gray-100 font-medium">
                             {monster.exp}
@@ -69,7 +76,7 @@ export default function MonsterCard({
                     {monster.moveSpeedFactor && (
                         <div className="flex items-center gap-2">
                             <span className="text-green-500 font-semibold">
-                                Speed:
+                                {t('monsters.speed')}:
                             </span>
                             <span className="text-gray-900 dark:text-gray-100">
                                 {monster.moveSpeedFactor}x
@@ -79,7 +86,7 @@ export default function MonsterCard({
                     {monster.damageMultiplier && (
                         <div className="flex items-center gap-2">
                             <span className="text-orange-500 font-semibold">
-                                Damage:
+                                {t('monsters.damage')}:
                             </span>
                             <span className="text-gray-900 dark:text-gray-100">
                                 {monster.damageMultiplier}x
@@ -97,13 +104,13 @@ export default function MonsterCard({
                     monster.elementFactor_Ghost !== undefined) && (
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
                         <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                            Element Resistance
+                            {t('monsters.element_resistance')}
                         </h4>
                         <div className="grid grid-cols-3 gap-2 text-xs">
                             {monster.elementFactor_Physics !== undefined && (
                                 <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">
-                                        Physics:
+                                        {t('monsters.physics')}:
                                     </span>
                                     <span className="font-medium text-gray-900 dark:text-gray-100">
                                         {monster.elementFactor_Physics}x
@@ -113,7 +120,7 @@ export default function MonsterCard({
                             {monster.elementFactor_Fire !== undefined && (
                                 <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">
-                                        Fire:
+                                        {t('monsters.fire')}:
                                     </span>
                                     <span className="font-medium text-gray-900 dark:text-gray-100">
                                         {monster.elementFactor_Fire}x
@@ -123,7 +130,7 @@ export default function MonsterCard({
                             {monster.elementFactor_Poison !== undefined && (
                                 <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">
-                                        Poison:
+                                        {t('monsters.poison')}:
                                     </span>
                                     <span className="font-medium text-gray-900 dark:text-gray-100">
                                         {monster.elementFactor_Poison}x
@@ -134,7 +141,7 @@ export default function MonsterCard({
                                 undefined && (
                                 <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">
-                                        Elec:
+                                        {t('monsters.elec')}:
                                     </span>
                                     <span className="font-medium text-gray-900 dark:text-gray-100">
                                         {monster.elementFactor_Electricity}x
@@ -144,7 +151,7 @@ export default function MonsterCard({
                             {monster.elementFactor_Space !== undefined && (
                                 <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">
-                                        Space:
+                                        {t('monsters.space')}:
                                     </span>
                                     <span className="font-medium text-gray-900 dark:text-gray-100">
                                         {monster.elementFactor_Space}x
@@ -154,7 +161,7 @@ export default function MonsterCard({
                             {monster.elementFactor_Ghost !== undefined && (
                                 <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">
-                                        Ghost:
+                                        {t('monsters.ghost')}:
                                     </span>
                                     <span className="font-medium text-gray-900 dark:text-gray-100">
                                         {monster.elementFactor_Ghost}x
@@ -169,7 +176,9 @@ export default function MonsterCard({
                 {dropItems.length > 0 && (
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
                         <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                            Drops ({dropItems.length} items)
+                            {t('monsters.drops_items', {
+                                count: dropItems.length,
+                            })}
                         </h4>
                         <div className="max-h-64 overflow-y-auto pr-1">
                             <div className="grid grid-cols-2 gap-2">

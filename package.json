@@ -8,14 +8,19 @@
         "start": "next start",
         "lint": "eslint",
         "format": "prettier --write .",
-        "format:check": "prettier --check ."
+        "format:check": "prettier --check .",
+        "build:wasm": "cd wgpu-renderer && wasm-pack build --target web"
     },
     "dependencies": {
         "@xyflow/react": "^12.9.2",
+        "i18next": "^25.6.1",
+        "i18next-resources-to-backend": "^1.2.1",
         "nanoid": "^5.1.6",
         "next": "16.0.1",
         "react": "19.2.0",
-        "react-dom": "19.2.0"
+        "react-dom": "19.2.0",
+        "react-i18next": "^16.2.4",
+        "server-only": "^0.0.1"
     },
     "devDependencies": {
         "@tailwindcss/postcss": "^4",

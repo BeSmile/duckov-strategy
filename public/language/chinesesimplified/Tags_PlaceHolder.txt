@@ -15,4 +15,11 @@ Tag_GunType_SHT,霰弹枪
 Tag_GunType_SNP,狙击步枪
 Tag_Computer,计算机
 Tag_Element,元素弹
-Tag_DontDropOnDeadInSlot,穿戴死亡不掉落
+Tag_DontDropOnDeadInSlot,死亡不掉落
+Tag_Fish,鱼
+Tag_Fish_OnlyDay,仅白天
+Tag_Fish_OnlyNight,仅夜晚
+Tag_Fish_OnlyRainDay,仅雨天白天
+Tag_Fish_OnlyStorm,仅暴风雨
+Tag_Fish_OnlySunDay,仅晴天白天
+Tag_Fish_Special,特殊鱼类
