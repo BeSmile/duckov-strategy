@@ -1,4 +1,1108 @@
-﻿key,value
+﻿key,value,来源小黑盒 雾东军: 58032429
 Item_Helmat_SBossElec_ResSpace,比利头盔
-Item_NailBat,狼牙棒
+Item_NailBat,锋利狼牙棒
 Item_Crown,皇冠
+Item_Character,躯壳
+Item_0_MeleeWeapon_Template,切肉刀
+Item_ArmorLV3,三级防弹衣
+Item_Gem,金色五角星
+Item_BatteryR6,R6电池
+Item_Bandage,止血绷带
+Item_BatteryPP3,PP3电池
+Item_BeanCan,焗豆罐头
+Item_Biscuit,苏打饼干
+Item_Cola,可乐
+Item_FirstAidKit_L,大急救箱
+Item_FirstAidKit_M,急救箱
+Item_FirstAidKit_S,小急救箱
+Item_TunaCan__1,水浸金枪鱼罐头
+Item_TunaCan_2,油浸金枪鱼罐头
+Item_Aspirin,阿司匹林
+Item_Bleach,漂白剂
+Item_Cigarette,红条香烟
+Item_Dynamite,管状炸弹
+Item_DynamiteMultiple,集束管状炸弹
+Item_Flashlight,手电
+Item_GasMask_01,防毒面具
+Item_Goggle,滑雪镜
+Item_Nail,钉子
+Item_Vodka,伏特加
+Item_WD40,MD40
+Item_Wrench,扳手
+Item_ArmorLV1,一级防弹衣
+Item_ArmorLV2,二级防弹衣
+Item_ArmorLV4,四级防弹衣
+Item_ArmorLV5,五级防弹衣
+Item_BackpackLV1,装饰包
+Item_BackpackLV2,小学背包
+Item_BackpackLV3,旅行包
+Item_BackpackLV4,生存者背包
+Item_BackpackLV5,行军背包MAX
+Item_HelmatLV1,摩托头盔
+Item_HelmatLV2,老钢盔
+Item_HelmatLV3,特警头盔
+Item_HelmatLV4,SightPRO头盔
+Item_HelmatLV5,SCIFI面罩
+Item_HelmatLV6,神之电焊头
+Item_Wrench02,汽车扳手
+Item_ContinerL,大扩容箱
+Item_ContinerM,中扩容箱
+Item_ContinerS,小扩容箱
+Item_Clock,闹钟
+Item_Detergent,洁厕灵
+Item_Drum1,红色大桶
+Item_Drum2,蓝色大桶
+Item_Drum3,黄色大桶
+Item_Drum4,金属油桶
+Item_GolfClub,高尔夫球棒
+Item_Ink,墨水
+Item_Pot,锅
+Item_Tissue,卷纸
+Item_Zippo,Cippo
+Item_PressionSencer,压力传感器
+Item_uPhone,uPhone手机
+Item_Walkie_Talkie,对讲机
+Item_Walkie_Talkie02,军用对讲机
+Item_FlashGrenade,闪光手雷
+Item_Grenade,手雷
+Item_Chocalate,巧克力
+Item_EnergyStick,能量棒
+Item_Honey,蜂蜜
+Item_Ketchup,番茄酱
+Item_Book,书
+Item_Letter,信件
+Item_Key_BlueHouse,安全屋隔间钥匙
+Item_AirplaneToy,飞机模型
+Item_Ball,足球
+Item_BicyleToy,自行车模型
+Item_Cannon,大炮
+Item_Compass,指南针
+Item_Dice_2,骰子
+Item_Dice,骰子
+Item_Fish,玩具鱼
+Item_Watch,怀表
+Item_Egg,鸭蛋
+Item_Heat,铝热剂
+Item_Propane,丙烷
+Item_Rope,绳子
+Item_Drugs,一堆药
+Item_Lv,输液药品
+Item_Broom,扫帚
+Item_Driver,平头螺丝刀
+Item_ElectricSaw,电锯
+Item_GasCanL,金属桶
+Item_GasCanS,塑料桶
+Item_HammerL,大锤子
+Item_HammerS,锤子
+Item_Lantern,煤油灯
+Item_Shovel,铲子
+Item_Telescope,望远镜
+Item_Trap,捕兽陷阱
+Item_Wrench03,撬棍
+Item__1_AccessoryTemplate,配件模板
+Item_CowMask,奶牛面具
+Item_Hat,牛仔帽
+Item_CocoMilk,可可奶
+Item_Soda,苏打水
+Item_Waterbottle,水壶
+Item_Whisky,威士忌
+Item_Pen,钢笔
+Item_Scissors,剪刀
+Item_Trophy,奖杯
+Item_Mike,麦克风
+Item_Radio,收音机
+Item_TOMSUNGPhone,TOMSUNG手机
+Item_Yogurt,酸奶
+Item_Newspaper,报纸
+Item_Note,笔记
+Item_Lipstick,口红
+Item_Ring,金戒指
+Item_RingToy,花花戒指
+Item_Robot,智能机器人
+Item_Rocket,玩具火箭
+Item_Skull,头骨饰品
+Item_Tambourine,手鼓
+Item_Trumpet,小号
+Item_Xylophone,木琴
+Item_Wheel,轮胎
+Item_Yarn,线
+Item_Pumpkin,南瓜
+Item_Basket,购物框
+Item_Cup,杯子
+Item_Cake,蛋糕
+Item_Carrot,胡萝 卜
+Item_Bone,骨头玩具
+Item_Heart,心
+Item_Injection,注射器
+Item_Injection_A,黄针
+Item_HeadLantern,头灯
+Item_Bullet_Template,子弹模板
+Item_Bullet_AR_L_Normal,L-普通弹
+Item_Bullet_AR_L_Burn,L-燃烧弹
+Item_Bullet_AR_L_Piercing3,L-穿甲弹
+Item_Bullet_AR_S_Normal,S-普通弹
+Item_Bullet_AR_S_Dumdums,S-达姆弹
+Item_Bullet_AR_S_Burn,S-燃烧弹
+Item_Bullet_SHOT_Normal,霰弹-鹿弹
+Item_Quest_Letter_Explorer,探索者的信
+Item_Key_Dormitory103,宿舍楼103钥匙(DEMO不可用)
+Item_Key_Dormitory106,宿舍楼106钥匙(DEMO不可用)
+Item_Bullet_AR_L_Poison,L-涂毒弹
+Item_Bullet_AR_L_Piercing5,L-高级穿甲弹
+Item_Bullet_AR_S_Piercing2,S-穿甲弹
+Item_Bullet_AR_S_Piercing4,S-高级穿甲弹
+Item_Bullet_SHOT_Piranha,霰弹-食人鱼
+Item_Bullet_SHOT_Burn,霰弹-龙息
+Item_Bullet_SHOT_Piercing4,霰弹-箭形弹
+Item_Bullet_SHOT_Electric,霰弹-电击
+Item_Bullet_Sniper_Normal,狙击-普通弹
+Item_Bullet_Sniper_Piercing3,狙击-穿甲弹
+Item_Bullet_Sniper_Electric,狙击-电击弹
+Item_Bullet_Sniper_Space,狙击-空间弹
+Item_Bullet_Sniper_Piercing5,狙击-高级穿甲弹
+Item_Grip_AS_Lv__1,突击握把 Lv1
+Item_Grip_AS_Lv_2,突击握把 Lv2
+Item_Grip_AS_Lv_3,突击握把 Lv3
+Item_Grip_SP_Lv__1,快拆握把 Lv1
+Item_Grip_SP_Lv_2,快拆握把 Lv2
+Item_Grip_SP_Lv_3,快拆握把 Lv3
+Item_Grip_Verticle_Lv__1,垂直握把 Lv1
+Item_Grip_Verticle_Lv_2,垂直握把 Lv2
+Item_Grip_Verticle_Lv_3,垂直握把 Lv3
+Item_Muzzle_L_Type__1,大口径制退器 Lv.1
+Item_Muzzle_L_Type_2,大口径制退器 Lv.2
+Item_Muzzle_L_Type_3,大口径制退器 Lv.3
+Item_Muzzle_Shot_Type__1,霰弹枪集束器 Lv.1
+Item_Muzzle_Shot_Type_2,霰弹枪集束器 Lv.2
+Item_Muzzle_Shot_Type_3,霰弹枪集束器 Lv.3
+Item_Muzzle_Sniper_Type__1,狙击枪消音器 Lv.1
+Item_Muzzle_Sniper_Type_2,狙击枪消音器 Lv.2
+Item_Muzzle_Sniper_Type_3,狙击枪消音器 Lv.3
+Item_Muzzle_S_Type__1,小口径制退器 Lv.1
+Item_Muzzle_S_Type_2,小口径制退器 Lv.2
+Item_Muzzle_S_Type_3,小口径制退器 Lv.3
+Item_Scope_4X_Lv__1,4倍镜 Lv1
+Item_Scope_4X_Lv_2,4倍镜 Lv2
+Item_Scope_4X_Lv_3,4倍镜 Lv3
+Item_Scope_8X_Lv__1,8倍镜 Lv1
+Item_Scope_8X_Lv_2,8倍镜 Lv2
+Item_Scope_8X_Lv_3,8倍镜 Lv3
+Item_Scope_Digit_Lv__1,数字瞄具 Lv1
+Item_Scope_Digit_Lv_2,数字瞄具 Lv2
+Item_Scope_Digit_Lv_3,数字瞄具 Lv3
+Item_Scope_Holo_Lv__1,全息瞄具 Lv1
+Item_Scope_Holo_Lv_2,全息瞄具 Lv2
+Item_Scope_Holo_Lv_3,全息瞄具 Lv3
+Item_Scope_Long_Lv__1,快速瞄具 Lv1
+Item_Scope_Long_Lv_2,快速瞄具 Lv2
+Item_Scope_Long_Lv_3,快速瞄具 Lv3
+Item_Scope_RedDot_Lv__1,红点瞄具 Lv1
+Item_Scope_RedDot_Lv_2,红点瞄具 Lv2
+Item_Scope_RedDot_Lv_3,红点瞄具 Lv3
+Item_Stock_Rifle_Lv__1,步枪枪托 Lv1
+Item_Stock_Rifle_Lv_2,步枪枪托 Lv2
+Item_Stock_Rifle_Lv_3,步枪枪托 Lv3
+Item_Stock_Shot_Lv__1,霰弹枪托 Lv1
+Item_Stock_Shot_Lv_2,霰弹枪托 Lv2
+Item_Stock_Shot_Lv_3,霰弹枪托 Lv3
+Item_Stock_SMG_Lv__1,冲锋枪枪托 Lv1
+Item_Stock_SMG_Lv_2,冲锋枪枪托 Lv2
+Item_Stock_SMG_Lv_3,冲锋枪枪托 Lv3
+Item_Stock_Sniper_Lv__1,狙击枪枪托 Lv1
+Item_Stock_Sniper_Lv_2,狙击枪枪托 Lv2
+Item_Stock_Sniper_Lv_3,狙击枪枪托 Lv3
+Item_Tec_Lazer_Lv__1,战术激光 Lv1
+Item_Tec_Lazer_Lv_2,战术激光 Lv2
+Item_Tec_Lazer_Lv_3,战术激光 Lv3
+Item_Tec_Light_Lv__1,战术手电 Lv1
+Item_Tec_Light_Lv_2,战术手电 Lv2
+Item_Tec_Light_Lv_3,战术手电 Lv3
+Item_Magazine_Rifle_Lv__1,大口径扩容弹匣 Lv1
+Item_Magazine_Rifle_Lv_2,大口径扩容弹匣 Lv2
+Item_Magazine_Rifle_Lv_3,大口径扩容弹匣 Lv3
+Item_Magazine_SMG_Lv__1,小口径扩容弹匣 Lv1
+Item_Magazine_SMG_Lv_2,小口径扩容弹匣 Lv2
+Item_Magazine_SMG_Lv_3,小口径扩容弹匣 Lv3
+Item_L_AK102_Lv_2,AK-103
+Item_L_AK47_Lv_2,AK-47
+Item_L_MF_Lv_2,MF
+Item_L_RPK_Lv_2,RPK
+Item_Sniper_VPO,VPO-101
+Item_Shot_Hand_Lv_2,土制猎枪
+Item_Shot_MP155_Lv_2,MP-155
+Item_S_AK74_Lv_2,AK-74U
+Item_S_GLick_Lv_2,格力克
+Item_S_MMG_Lv_2,MMG
+Item_S_MP7_Lv_2,MP7
+Item_S_UAK45_Lv_2,UP-45
+Item_S_UZI_Lv_2,UZI
+Item_Grip_AS_Lv_4,突击握把 Lv4
+Item_Grip_SP_Lv_4,快拆握把 Lv4
+Item_Grip_Verticle_Lv_4,垂直握把 Lv4
+Item_Magazine_Rifle_Lv_4,大口径扩容弹匣 Lv4
+Item_Magazine_SMG_Lv_4,小口径扩容弹匣 Lv4
+Item_Muzzle_L_Type_4,大口径制退器 Lv.4
+Item_Muzzle_Shot_Type_4,霰弹枪集束器 Lv.4
+Item_Muzzle_Sniper_Type_4,狙击枪消音器 Lv.4
+Item_Muzzle_S_Type_4,小口径制退器 Lv.4
+Item_Scope_4X_Lv_4,4倍镜 Lv4
+Item_Scope_8X_Lv_4,8倍镜 Lv4
+Item_Scope_Digit_Lv_4,数字瞄具 Lv4
+Item_Scope_Holo_Lv_4,全息瞄具 Lv4
+Item_Scope_Long_Lv_4,快速瞄具 Lv4
+Item_Scope_RedDot_Lv_4,红点瞄具 Lv4
+Item_Stock_Rifle_Lv_4,步枪枪托 Lv4
+Item_Stock_Shot_Lv_4,霰弹枪托 Lv4
+Item_Stock_SMG_Lv_4,冲锋枪枪托 Lv4
+Item_Stock_Sniper_Lv_4,狙击枪枪托 Lv4
+Item_Tec_Lazer_Lv_4,战术激光 Lv4
+Item_Tec_Light_Lv_4,战术手电 Lv4
+Item__1_Blueprint,蓝图模板
+Item_BP_AK102,蓝图：AK-103
+Item_BP_AK47,蓝图：AK-47
+Item_BP_AK74U,蓝图：AK-74U
+Item_BP_HAND,蓝图：土制猎枪
+Item_BP_MF,蓝图：MF
+Item_BP_MMG,蓝图：MMG
+Item_BP_MP155,蓝图：MP-155
+Item_BP_MP7,蓝图：MP7
+Item_BP_RPK,蓝图：RPK
+Item_BP_VPO,蓝图：VPO-101
+Item_BP_UAK45,蓝图：UP-45
+Item_BP_UZI,蓝图：UZI
+Item_HardDrive,移动硬盘
+Item_Quest_HardDrive_Dormitory,移动硬盘： 宿舍楼
+Item_Quest_HardDrive_GasStation,移动硬盘：加油站录像
+Item_FloppyDisk,J-Lab软盘
+Item__1_EnemyGun_Template,枪
+Item_PigKnife,切肉刀
+Item_Axe,战斧
+Item__1_Armor_Template,一级防弹衣
+Item_ColdCore,冷核碎片
+Item_FlamingCore,赤核碎片
+Item_Key_Card_Factory,工厂门禁卡
+Item_Key_Card_Factory_Uncrack,工厂门禁卡(加密)
+Item_BP_Weapon_0_Basic,武器蓝图：基础
+Item_BP_Weapon_2_Pro,武器蓝图：专业
+Item_BP_Weapon__1_Advanced,武器蓝图：进阶
+Item_BP_Weapon_3_Ultimate,武器蓝图： 终极
+Item_Totem_Armor_2,图腾 : 甲胄 II
+Item_Totem_Armor,图腾 : 甲胄 I
+Item_Totem_Attack_2,图腾:进击 II
+Item_Totem_Attack,图腾:进击 I
+Item_Totem_MeleeAttack_2,图腾:战士 II
+Item_Totem_MeleeAttack,图腾:战士 I
+Item_Totem_Speed,图腾:轻盈
+Item_Totem_Strong,图腾:健壮III
+Item_Bullet_Rocket,火箭弹 Lv1
+Item_Rocket_RPG_Lv__1,RPG-7
+Item_GPU,显示卡
+Item_PowerBank,充电宝
+Item_InformationFiles,情报文件
+Item_LEDX,LEDX皮肤透照仪
+Item_Bolt,螺栓
+Item_Bulb,灯泡
+Item_Bulb2,节能灯
+Item_Nut,螺母
+Item_Cable,电源线
+Item_Cables,电线
+Item_CDDriver,CD驱动器
+Item_CircuitBoard,电路板
+Item_ElectricParts,电子元件
+Item_FishingRod,简易鱼竿
+Item_Bullet_AR_S_Poison,S-涂毒弹
+Item_Bullet_AR_S_Electric,S-电击弹
+Item_Bullet_AR_L_Electric,L-电击弹
+Item_Bullet_AR_L_Space,L-空间弹
+Item_Bullet_AR_S_Space,S-空间弹
+Item_Bullet_SHOT_Piercing2,霰弹-穿甲弹
+Item_AnimalWeapon,空手
+Item_A_Bow_Lv__1,劣质弓
+Item_Bullet_Arrow_Normal,木箭矢
+Item_Key_GroundZero_GHouse,灰房子钥匙
+Item_Key_GroundZero_Storage,杂物围栏钥匙
+Item_Wood,木料
+Item_MetalSlice,金属片
+Item_Bullet_AR_L_Rusted,L-过期子弹
+Item_Bullet_AR_S_Rusted,S-生锈子弹
+Item_WoodStick,木棍
+Item_Quest_Letter_EquipmentMercent,老朋友的信
+Item_WeaponParts,武器零件
+Item_Feather,虚化的羽毛
+Item_Totem_NoBleed,图腾：抗物I
+Item_Totem_Marathon,图腾： 马拉松I
+Item_Totem_Hunger,图腾：饥饿大师
+Item_Totem_Stamina,图腾： 耐力
+Item_Quest_Blueprint_TeleporterMachine,传送装置图纸
+Item_Formula_WD40,配方：MD40
+Item_Quest_GroundZero_Signal,农场镇传送密钥
+Item_BP_RPG,蓝图：RPG发射器
+Item_Formula_Trap,配方：捕兽夹
+Item_Formula_WD40,配方：MD40
+Item_Armor_Cai,背带衣
+Item_Basketball,T.H篮球
+Item_Formula_ArmorCai,配方： 背带衣
+Item_Formula_Wrench03,配方：撬棍
+Item_Formula_Cable,配方：  电源线
+Item_Key_Machine,机械钥匙
+Item_Quest_Watch,怀表
+Item_Quest_List_GroundZeroGoods,货物清单
+Item_Formula_CircuitBoard,配方：  电路板
+Item_BitCoin,0.2BTC
+Item_Quest_Letter_InShop,神秘留言
+Item_Bullet_Energy_S,小型能量弹
+Item_Energy_CubeGun,方块枪（电）
+Item_BP_CubeGun,蓝图：方块枪
+Item_BP_Bullet_Energy_S,蓝图： 小型能量弹药
+Item_ComputeCore,计算核心
+Item_Jin itaimei,黑色针剂
+Item_Formula_Jin itaimei,配方： 黑色药剂
+Item_BitcoinMiner,比特币矿机
+Item_Injection_Weight,负重针
+Item_Bullet_Arrow_Explosion,爆炸箭
+Item_BP_ArrowExplosion,蓝图：爆炸箭
+Item_BP_GPU_Potato,蓝图：土豆显卡
+Item_GPU_Potato,土豆显卡
+Item_Potato,土豆
+Item_Bullet_SHOT_Rusted,霰弹-破烂
+Item_BP_GasMask,蓝图： 防毒面具
+Item_Bullet_Sniper_Rusted,狙击-劣质子弹
+Item_Sniper_Balett,M107
+Item_Injection_ElecResist,电抗性针
+Item_Injection_PainResist,镇痛剂
+Item_Formula_Injection_ElecResist,配方：抗电性针
+Item_Formula_Injection_PainResist,配方：镇痛剂
+Item_Magazine_Sniper_Lv__1,狙击枪弹匣 Lv1
+Item_Magazine_Sniper_Lv_2,狙击枪弹匣 Lv2
+Item_Magazine_Sniper_Lv_3,狙击枪弹匣 Lv3
+Item_Magazine_Sniper_Lv_4,狙击枪弹匣 Lv4
+Item_Muzzle_L_Slience__1,大口径消音器 Lv1
+Item_Muzzle_L_Slience_2,大口径消音器 Lv2
+Item_Muzzle_L_Slience_3,大口径消音器 Lv3
+Item_Muzzle_L_Slience_4,大口径消音器 Lv4
+Item_Muzzle_S_Slience__1,小口径消音器 Lv1
+Item_Muzzle_S_Slience_2,小口径消音器 Lv2
+Item_Muzzle_S_Slience_3,小口径消音器 Lv3
+Item_Muzzle_S_Slience_4,小口径消音器 Lv4
+Item_Note_BlackMarket,黑市联络笔记
+Item_UDisk,加密U盘
+Item_Key_HiddenWarehouse_Cellar,地窖钥匙
+Item_Quest_Letter_HiddenWarehouse_Explorer,隐居者的信
+Item_Water,瓶装水
+Item_PowerOfWishlist,愿望单之力
+Item_Totem_ElecResist_2,图腾:抗电 II
+Item_Totem_ElecResist,图腾:抗电 I
+Item_Totem_Heal,图腾：效率II
+Item_Totem_RecoilControl,图腾：控枪III
+Item_Totem_Reload,图腾： 战术换弹
+Item_Totem_Ninja_2,图腾:忍者 II
+Item_Totem_Ninja,图腾:忍者 I
+Item_Sniper_VPO_Deng,VPO-劳登改
+Item_Injection_HotBlood,热血针剂
+Item_Formula_Injection_HotBlood,配方： 热血针剂
+Item_Key_GasStation_Warehouse,废弃加油站钥匙
+Item_Key_RedWareHosue_Warehouse,厂区办公室钥匙
+Item_Key_SmallRoom_HiddenWarehouse,小隔间钥匙
+Item_Key_HiddenWarehouse_Cellar_Wire,地窖围栏钥匙
+Item_RedBag,红包
+Item_LuckyNote__1,小纸条
+Item_AncientCoins,铜钱串
+Item_ChineseKnot,中国结
+Item_ChineseLantern,红灯笼
+Item_Dumpling,饺子
+Item_S_GLick_Low,烂格力克
+Item_Cash,现金
+Item_Grip_ALL_ADS__1,快速握把A
+Item_Grip_ALL_ADS_2,快速握把B
+Item_Grip_ALL_REC__1,垂直握把I
+Item_Grip_ALL_REC_2,水平握把I
+Item_Grip_ALL_REC_3,平衡握把
+Item_Grip_ALL_REC_4,垂直握把II
+Item_Grip_ALL_REC_5,水平握把II
+Item_Grip_ALL_SCA__1,腰射握把I
+Item_Grip_ALL_SCA_3,腰射握把II
+Item_Muzzle_PST_REC__1,手枪制退器-均衡A
+Item_Muzzle_PST_REC_2,手枪制退器-均衡B
+Item_Muzzle_PST_SIL__1,手枪消音器
+Item_Muzzle_PST_DIS__1,手枪延长枪口
+Item_Muzzle_PST_SCA__1,手枪制退器-散布
+Item_Muzzle_SMG_REC__1,冲锋枪制退器-均衡A
+Item_Muzzle_SMG_REC_2,冲锋枪制退器-均衡B
+Item_Muzzle_SMG_REC_3,冲锋枪垂直制退器
+Item_Muzzle_SMG_REC_4,冲锋枪水平制退器
+Item_Muzzle_SMG_SCA__1,冲锋枪制退器-散布
+Item_Muzzle_SMG_SCA_2,冲锋枪螺旋制退器
+Item_Muzzle_SMG_SIL__1,冲锋枪消音器
+Item_Muzzle_AR_DIS__1,步枪延长枪口
+Item_Muzzle_AR_REC__1,步枪制退器-均衡A
+Item_Muzzle_AR_REC_2,步枪制退器-均衡B
+Item_Muzzle_AR_REC_3,步枪垂直制退器
+Item_Muzzle_AR_REC_4,步枪水平制退器
+Item_Muzzle_AR_SCA__1,步枪制退器-散布
+Item_Muzzle_AR_SCA_2,步枪螺旋制退器
+Item_Muzzle_AR_SIL__1,步枪消音器
+Item_Muzzle_SNP_DIS__1,狙击枪延长枪口
+Item_Muzzle_SNP_REC__1,狙击枪制退器-均衡A
+Item_Muzzle_SNP_REC_3,狙击枪水平制退器
+Item_Muzzle_SNP_SCA__1,狙击枪制退器-散布
+Item_Muzzle_SNP_SCA_2,狙击枪制退器-机动
+Item_Muzzle_SNP_SIL__1,狙击枪消音器
+Item_Muzzle_SHT_REC__1,霰弹枪制退器-均衡A
+Item_Stock_AR_MOV__1,快速枪托
+Item_Stock_AR_REC__1,平衡枪托I
+Item_Stock_AR_REC_2,平衡枪托II
+Item_Stock_AR_REL__1,轻型枪托
+Item_Stock_AR_SCA_3,腰射枪托I
+Item_Stock_AR_SCA_4,控制枪托I
+Item_Stock_AR_SCA_5,腰射枪托II
+Item_Stock_SNP_REC_2,狙击枪平衡枪托II
+Item_Stock_SNP_SCA_2,狙击枪控制枪托I
+Item_Stock_SNP_SCA_4,狙击枪控制枪托II
+Item_Magazine_PST_ADS__1,手枪快速弹匣I
+Item_Magazine_PST_ADS_2,手枪快速弹匣II
+Item_Magazine_PST_CAP__1,手枪扩容弹匣I
+Item_Magazine_PST_CAP_2,手枪扩容弹匣II
+Item_Magazine_SMG_ADS__1,冲锋枪快速弹匣I
+Item_Magazine_SMG_CAP__1,冲锋枪扩容弹匣I
+Item_Magazine_SMG_CAP_2,冲锋枪扩容弹匣II
+Item_Magazine_SMG_CAP_3,冲锋枪扩容弹匣III
+Item_Magazine_AR_ADS__1,步枪快速弹匣I
+Item_Magazine_AR_ADS_2,步枪快速弹匣II
+Item_Magazine_AR_CAP__1,步枪扩容弹匣I
+Item_Magazine_AR_CAP_2,步枪扩容弹匣II
+Item_Magazine_AR_CAP_3,步枪扩容弹匣III
+Item_Magazine_SNP_ADS__1,狙击枪快速弹匣I
+Item_Magazine_SNP_ADS_2,狙击枪快速弹匣II
+Item_Magazine_SNP_CAP__1,狙击枪扩容弹匣I
+Item_Magazine_SNP_CAP_2,狙击枪扩容弹匣II
+Item_Magazine_SHT_CAP__1,霰弹枪扩容弹匣I
+Item_Magazine_SHT_CAP_2,霰弹枪扩容弹匣II
+Item_Magazine_SHT_CAP_3,霰弹枪扩容弹匣III
+Item_Scope_AR_4X__1,步枪4倍镜
+Item_Scope_SNP_8X__1,狙击枪8倍镜
+Item_Scope_All_Digit__1,数字瞄具
+Item_Scope_All_Holo__1,全息瞄具
+Item_Scope_All_Long__1,快速瞄具
+Item_Scope_All_RedDot__1,红点瞄具
+Item_Scope_All_2X__1,2倍镜
+Item_Tec_Laser_ADS__1,激光-机动
+Item_Tec_Laser_ADS_2,激光-快反
+Item_Tec_Laser_SCA__1,激光-基础
+Item_Tec_Laser_SCA_2,激光-校准
+Item_Tec_Flashlight_NON__1,战术手电
+Item_Muzzle_SHT_SCA_3,霰弹枪制退器-机动Item_Bullet_SMG_Rusted,S-生锈弹
+Item_Bullet_SMG_Normal,S-普通弹
+Item_Bullet_SMG_Burn,S-燃烧弹
+Item_Bullet_SMG_Piercing3,S-中级穿甲弹
+Item_Bullet_SMG_Piercing5,S-高级穿甲弹
+Item_Bullet_SMG_Poison,S-毒性弹
+Item_Bullet_SMG_Electric,S-感电弹
+Item_Bullet_SMG_Space,S-空间弹
+Item_Bullet_SMG_Dumdums,S-肉伤弹
+Item_Bullet_AR_Rusted,AR-生锈弹
+Item_Bullet_AR_Normal,AR-普通弹
+Item_Bullet_AR_Burn,AR-燃烧弹
+Item_Bullet_AR_Piercing3,AR-穿甲弹
+Item_Bullet_AR_Piercing5,AR-高级穿甲弹
+Item_Bullet_AR_Poison,AR-毒性弹
+Item_Bullet_AR_Electric,AR-感电弹
+Item_Bullet_AR_Space,AR-空间弹
+Item_Bullet_AR_Dumdums,AR-肉伤弹
+Item_Bullet_BR_Rusted,L-生锈弹
+Item_Bullet_BR_Normal,L-普通弹
+Item_Bullet_BR_Burn,L-燃烧弹
+Item_Bullet_BR_Piercing3,L-中级穿甲弹
+Item_Bullet_BR_Piercing5,L-高级穿甲弹
+Item_Bullet_BR_Poison,L-毒性弹
+Item_Bullet_BR_Electric,L-感电弹
+Item_Bullet_BR_Space,L-空间弹
+Item_Bullet_BR_Dumdums,L-肉伤弹
+Item_Bullet_SNP_Rusted,生锈狙击弹
+Item_Bullet_SNP_Normal,普通狙击弹
+Item_Bullet_SNP_Burn,燃烧狙击弹
+Item_Bullet_SNP_Piercing3,中级穿甲狙击弹
+Item_Bullet_SNP_Piercing5,高级穿甲狙击弹
+Item_Bullet_SNP_Poison,毒性狙击弹
+Item_Bullet_SNP_Electric,感电狙击弹
+Item_Bullet_SNP_Space,空间狙击弹
+Item_Bullet_SNP_Dumdums,肉伤狙击弹
+Item_Bullet_SHT_Rusted,生锈霰弹
+Item_Bullet_SHT_Normal,普通霰弹
+Item_Bullet_SHT_Burn,燃烧霰弹
+Item_Bullet_SHT_Piercing3,中级穿甲霰弹
+Item_Bullet_SHT_Piercing5,高级穿甲霰弹
+Item_Bullet_SHT_Poison,毒性霰弹
+Item_Bullet_SHT_Electric,感电霰弹
+Item_Bullet_SHT_Space,空间霰弹
+Item_Bullet_SHT_Dumdums,肉伤霰弹
+Item_Bullet_MAG_Rusted,MAG-生锈弹
+Item_Bullet_MAG_Normal,MAG-普通弹
+Item_Bullet_MAG_Burn,MAG-燃烧弹
+Item_Bullet_MAG_Piercing3,MAG-中级穿甲弹
+Item_Bullet_MAG_Piercing5,MAG-高级穿甲弹
+Item_Bullet_MAG_Poison,MAG-毒性弹
+Item_Bullet_MAG_Electric,MAG-感电弹
+Item_Bullet_MAG_Space,MAG-空间弹
+Item_Bullet_MAG_Dumdums,MAG-肉伤弹
+Item_Bullet_ARR_Normal,木矢
+Item_Bullet_ARR_Explosion,爆炸矢
+Item_Bullet_PWS_S,小能量弹
+Item_Tec_Laser_CIT__1,激光-暴击
+Item_AR_ADAR_Normal,ADAR 2-15
+Item_AR_AUGA1_Normal,StG 77
+Item_AR_AUGA3_Normal,StG 77A3
+Item_SMG_MP5_Normal,MP5
+Item_BR_SKS_Normal,SKS-45
+Item_SHT_TOZ66_Normal,TOZ-66
+Item_SHT_TOZ106_Normal,TOZ-106
+Item_AR_VPO136_Normal,VPO-136
+Item_SmokeGrenade,烟雾弹
+Item_WeaponPartsLv2,中级武器零件
+Item_WeaponPartsLv3,高级武器零件
+Item_BP_ADAR,蓝图：ADAR 2-15
+Item_BP_AUGA1,蓝图：StG 77
+Item_BP_AUGA3,蓝图：StG 77A3
+Item_BP_MP5,蓝图：MP5
+Item_BP_SKS,蓝图：SKS
+Item_BP_TOZ66,蓝图：TOZ-66
+Item_BP_TOZ106,蓝图：TOZ-106
+Item_BP_VPO136,蓝图：VPO-136
+Item_BP_Bullet_BR_Normal,蓝图：普通重型弹
+Item_BP_Bullet_SNP_Normal,蓝图：普通狙击弹蓝图
+Item_BP_Bullet_SHT_Normal,蓝图：普通霰弹蓝图
+Item_BP_Bullet_MAG_Normal,蓝图：普通反器材弹
+Item_HeadsetLV1,耳机
+Item_BR_VSS_Normal,VSS
+Item_AR_ASVAL_Normal,AS Val
+Item_AR_DTMDR556_Normal,DT MDR-556
+Item_BR_DTMDR762_Normal,DT MDR-762
+Item_Bullet_SMG_Piercing2,S-低级穿甲弹
+Item_Bullet_SMG_Piercing4,S-中级穿甲弹
+Item_Bullet_SMG_Piercing6,S-高级穿甲弹
+Item_Bullet_SMG_Break,S-特种弹
+Item_Bullet_AR_Piercing2,AR-低级穿甲弹
+Item_Bullet_AR_Piercing4,AR-中级穿甲弹
+Item_Bullet_AR_Piercing6,AR-高级穿甲弹
+Item_Bullet_AR_Break,AR-碎甲弹
+Item_Bullet_BR_Piercing2,L-低级穿甲弹
+Item_Bullet_BR_Piercing4,L-中级穿甲弹
+Item_Bullet_BR_Piercing6,L-高级穿甲弹
+Item_Bullet_BR_Break,L-碎甲弹
+Item_Bullet_SNP_Piercing2,低级穿甲狙击弹
+Item_Bullet_SNP_Piercing4,中级穿甲狙击弹
+Item_Bullet_SNP_Piercing6,高级穿甲狙击弹
+Item_Bullet_SNP_Break,碎甲狙击弹
+Item_Bullet_SHT_Piercing2,低级穿甲霰弹
+Item_Bullet_SHT_Piercing4,中级穿甲霰弹
+Item_Bullet_SHT_Piercing6,高级穿甲霰弹
+Item_Bullet_SHT_Break,特种霰弹
+Item_Bullet_MAG_Piercing2,MAG-低级穿甲弹
+Item_Bullet_MAG_Piercing4,MAG-中级穿甲弹
+Item_Bullet_MAG_Piercing6,MAG-高级穿甲弹
+Item_Bullet_MAG_Break,MAG-碎甲弹
+Item_Muzzle_PST_DAM__1,手枪增伤枪口II
+Item_Muzzle_SMG_DAM__1,冲锋枪增伤枪口II
+Item_Muzzle_AR_DAM__1,步枪增伤枪口II
+Item_Muzzle_SNP_DAM__1,狙击枪增伤枪口II
+Item_Muzzle_SHT_DAM__1,霰弹枪增伤枪口II
+Item_Stock_SMG_SCA_4,冲锋枪腰射枪托II
+Item_NightVisionGoggles,GPNVG-18夜视仪
+Item_ThermalVisionGoggles,T-7热成像目镜
+Item_SMG_MP7_Electric,带电MP7
+Item_SMG_PP19Bizon_Normal,Bizon-2
+Item_SMG_PPSH_Normal,PPSh
+Item_SMG_SR3M_Normal,SR-3M
+Item_SMG_Vector9_Normal,Vector
+Item_Formula_FirstAidKit_M,配方： 急救箱
+Item_WhiteGown,白大褂
+Item_Glass,黑色眼镜
+Item_GlassShiny,闪光的眼镜
+Item_fiber,有机纤维
+Item_SunGlass,太阳镜
+Item_Quest_Letter_LifeSupportClue,维生系统线索
+Item_Marker,标记器
+Item_Quest_AirCirculationUnit,空气循环单元
+Item_ComputingUnit,高性能计算单元
+Item_BP_ComputingUnit,蓝图： 高性能计算单元
+Item_Quest_HugeMotherBoard,大型主板
+Item_Quest_DogCollar,爱狗的项圈
+Item_Quest_Blueprint_Thrusters_Encrypted,飞船推进器图纸（加密）
+Item_Key_Card_JLabLv1,J-Lab一级凭证
+Item_Key_Card_JLabLv2,J-Lab二级凭证
+Item_Key_Card_JLabLv3,J-Lab三级凭证
+Item_Quest_ResearchDocument_Thrusters,矢量推进器研究日志
+Item_Eyeball_Jlab,矿长的虹膜信息
+Item_Key_ThrusterResearcherHome,研究员家宅钥匙
+Item_Quest_Blueprint_NavigationSystem,星际坐标
+Item_Quest_StarMap1,星图碎片Part1
+Item_Quest_StarMap2,星图碎片Part2
+Item_Quest_StarMap3,星图碎片Part3
+Item_Plastics,聚乙烯片
+Item_DuctTape,胶带
+Item_Quest_Blueprint_DefenceShield_BlackMarket,宇宙级防御力场蓝图（加密）
+Item_TransformDevice,能量重塑装置
+Item_EnergyBall,能源球
+Item_EggWhtieEnergyPieces,蛋清能源碎片
+Item_PoliceStick,警棍
+Item_Quest_Blueprint_ComputingUnit_Encrypted,高性能计算单元蓝图（加密）
+Item_Quest_Power_ComputingUnit,5000w电源
+Item_Muzzle_SHT_SIL__1,霰弹枪重型消音器
+Item_Stock_SNP_MOV__1,狙击枪快速枪托
+Item_Quest_Cooling_ComputingUnit,大型散热器
+Item_Key_Farm_JLabStaffHome,家门钥匙01
+Item_Sniper_M700_Normal,M700
+Item_Sniper_Mosin_Normal,Mosin-Nag ant
+Item_Sniper_SV98_Normal,SV98
+Item_PST_TT33_Normal,TT-33
+Item_PST_PM_Normal,PM
+Item_MAG_Desert_Normal,沙漠之鹰
+Item_BR_M1A_Normal,M1A
+Item_BR_M14_Normal,M14
+Item_AR_MCXSpear_Normal,MCX Spear
+Item_ArmorLV1Fire,一级防火服
+Item_Jacket,皮夹克
+Item_Formula_Injection_A,配方：黄针
+Item_Formula_Injection_Weight,配方： 负重针
+Item_Key_HiddenWarehouse_RBHouse,民房钥匙
+Item_BP_ThermalVisionGoggles,蓝图：T-7热成像目镜
+Item_Injection_StoneSkin,硬化针
+Item_Injection_Stamina,持久针
+Item_UVBulb2,紫外灯
+Item_Injection_MeleeDamage,近战针
+Item_Key_Card_Yellow,J-Lab门禁卡（黄）
+Item_Key_Card_Red,J-Lab门禁卡（红）
+Item_Key_Card_Green,J-Lab门禁卡（绿）
+Item_Key_Card_Blue,J-Lab门禁卡（蓝）
+Item_BP_VSS,蓝图：VSS
+Item_BP_ASVAL,蓝图：AS Val
+Item_BP_DTMDR556,蓝图：DT MDR-556
+Item_BP_DTMDR762,蓝图：DT MDR-762
+Item_BP_MP7_Electric,蓝图： 带电MP7
+Item_BP_PP19Bizon,蓝图：Bizon-2
+Item_BP_PPSH,蓝图：PPSh
+Item_BP_SR3M,蓝图：SR-3M
+Item_BP_Vector9,蓝图：Vector
+Item_BP_M700,蓝图：M700
+Item_BP_Mosin,蓝图：Mosin-Nag ant
+Item_BP_SV98,蓝图：SV98
+Item_BP_TT33,蓝图：TT-33
+Item_BP_PM,蓝图：PM
+Item_BP_Desert,蓝图： 沙漠之鹰
+Item_BP_M1A,蓝图：M1A
+Item_BP_M14,蓝图：M14
+Item_BP_MCXSpear,蓝图：MCX Spear
+Item_Quest_BlueprintPieces_MF__1,MF蓝图碎片1
+Item_Quest_BlueprintPieces_MF_2,MF蓝图碎片2
+Item_Quest_BlueprintPieces_MF_3,MF蓝图碎片3
+Item_Key_Card_ SouthFactory,南厂区钥匙卡
+Item_Key_MysteryX,神秘钥匙X (DEMO不可用)
+Item_Key_MysteryO,神秘钥匙O (DEMO不可用)
+Item_Key_MysteryZ,神秘Z钥匙
+Item_BP_NightVisionGoggles,蓝图： 夜视仪
+Item_Key_Farm_SuperMarketSmallRoom,超市隔间钥匙
+Item_Key_Farm_RestaurantSmallRoom,餐厅隔间钥匙
+Item_UniversalGlueA,万能胶A
+Item_UniversalGlueB,万能胶B
+Item_Quest_DeliverBox_DestoryOnBase,快递箱
+Item_KeyRing,钥匙包
+Item_Magazine_BR_ADS__1,BR快速弹匣I
+Item_Magazine_BR_ADS_2,BR快速弹匣II
+Item_Magazine_BR_CAP__1,BR扩容弹匣I
+Item_Magazine_BR_CAP_2,BR扩容弹鼓II
+Item_Xing,麻布头套
+Item_Formula_UVBulb2,配方： 紫外灯
+Item_Formula_Drum1,配方： 红色大桶
+Item_Formula_Drum2,配方：蓝色大桶
+Item_Formula_Drum3,配方：黄色大桶
+Item_Formula_Drum4,配方： 金属油桶
+Item_Blindfold,遮眼布
+Item_BoatTicket,船票（DEMO不可用）
+Item_Bullet_Enemy_Piercing1,
+Item_Bullet_Enemy_Piercing2,
+Item_Bullet_Enemy_Piercing3,
+Item_Bullet_Enemy_Piercing4,
+Item_Bullet_Enemy_Piercing5,
+Item_Bullet_Enemy_Piercing6,
+Item_Injection_StormProtection1,空间风暴防护针
+Item_Injection_StormProtection2,测试用空间风暴防护针
+Item_ArmorLV4StormProtection,空间防护服
+Item_HelmatLV3StormProtection,空间防护头盔
+Item_SpaceCrystal,空间晶体
+Item_WeaponPartsPolluted,被污染的武器零件
+Item_AR_AK47_Fire,带火AK-47
+BP_AR_AK47_Fire,蓝图： 带火AK47
+Item_GunPowder,火药
+Item_Formula_Dynamite,配方： 管状炸弹
+Item_Formula_DynamiteMultiple,配方：集束管状炸弹
+Item_BP_Glick,蓝图：Glick
+Item_DemoChallengeTicket,DEMO终极挑战船票
+Item_ARR_BurstBow_Normal,连珠弓
+Item_Bullet_ARR_Piercing2,低级穿甲箭
+Item_Bullet_ARR_Piercing4,中级穿甲箭
+Item_Injection_RecoilControl,强翅针
+Item_Formula_WeaponPartsPolluted,配方：被污染的武器零件
+Item_Formula_ContinerL,配方： 大扩容箱
+Item_Injection_Healing,恢复针
+Item_SHT_MP155M_Normal,MP-155 ULTIMA
+Item_BP_MP155M,蓝图：MP-155 ULTIMA
+Item_mushroom,蘑菇
+Item_PaperBox,纸箱子
+Item_InjectionBag,注射器收纳包
+ Item_ProteinPowder,蛋白粉
+Item_Formula_ProteinPowder,配方：蛋白粉
+Item_ArmorLV6,六级防弹衣
+Item_Key_Card_Black,J-Lab门禁卡（黑）
+Item_Key_Card_Purple,J-Lab门禁卡（紫）
+Item_Apple,苹果
+Item_Helmat_Vida,维达头盔
+Item_BlackDogTag,狗牌
+Item_Helmat_Roadblock,路障头盔
+Item_Armor_SBossPhysical_ResPoison,噗咙防弹衣
+Item_Helmat_SBossPhysical_ResPoison,噗咙头盔
+Item_Armor_SBossPoison_LowDurResFire,咕噜防弹衣
+Item_Helmat_SBossPoison_LowDurResFire,咕噜头盔
+Item_EGun_StormBoss_2_Poison,*Item_EGun_StormBoss_2_Poison*
+Item_EGun_StormBoss_3_Fire,*Item_EGun_StormBoss_3_Fire*
+Item_EGun_StormBoss_4_Electric,*Item_EGun_StormBoss_4_Electric*
+Item_EGun_StormBoss_5_Space,*Item_EGun_StormBoss_5_Space_Desc*
+Item_Armor_SBossFire_ResElec,啪啦防弹衣
+Item_Armor_SBossElec_ResSpace,比利防弹衣
+Item_Armor_SBossSpace,口口防弹衣
+Item_Helmat_SBossFire_ResElec,啪啦头盔
+Item_Helmat_SBossSpace,口口头盔
+Item_PST_StormBoss_Poison,咕噜枪
+Item_BR_Storm_Space,风暴枪
+Item_MG_StormBoss_Fire,啪啦枪
+Item_SHT_StormBoss_Elec,比利枪
+Item_Bullet_PWL_L,大型能量弹
+Item_AppleSeed,测试种子
+Item_ArmorLV5StormProtection,空间防护服终极版
+Item_HelmatLV5StormProtection,空间防护头盔终极版
+Item_Cartridge_Snake,蛇形武装
+Item_FutureConsole,未来主机
+Item_GameTable,*Item_GameTable*
+Item_MonochromeMonitor,黑白显示器
+Item_AcceleratorCard,加速卡
+Item_Cartridge_BubblePop,碳酸危机
+Item_Cartridge_FactoryPanicShock,*Item_Cartridge_FactoryPanicShock*
+Item_Cartridge_GoldMiner,鸭鸭矿工
+Item_ColorMonitor,彩色显示器
+Item_Stone,小石头
+Item_ToxGrenade,毒雾弹
+Item_Helmat_Soda_Bucket,帽子头盔
+Item_FireGrenade,燃烧弹
+Item_ElecGrenade,电击手雷
+Item_Poop_ShitGun_Poison,噗噗枪
+Item_Bullet_Poop_Normal,粑粑弹
+Item_Backpack_Fly_Wing,蝇蝇翅膀
+Item_Poop_ShotShitGun_Poison,噗噗喷
+Item_Totem_Armor_3,图腾：甲胄III
+Item_Totem_Attack_3,图腾：攻击III
+Item_Totem_ElecResist_3,图腾：抗电III
+Item_Totem_Marathon_2,图腾：马拉松II
+Item_Totem_Marathon_3,图腾：马拉松III
+Item_Totem_FireResist_2,图腾：抗火II
+Item_Totem_FireResist_3,图腾：抗火III
+Item_Totem_FireResist,图腾：抗火I
+Item_Totem_GunDamage_3,图腾：进击III
+Item_Totem_Healing_2,图腾：恢复II
+Item_Totem_Healing_3,图腾：恢复III
+Item_Totem_Healing,图腾：恢复I
+Item_Totem_MaxHealth_2,图腾：生命II
+Item_Totem_MaxHealth_3,图腾：生命III
+Item_Totem_MaxHealth,图腾：生命I
+Item_Totem_Ninja_3,图腾：忍者III
+Item_Totem_PhysicResist_2,图腾：抗物II
+Item_Totem_PhysicResist_3,图腾：抗物III
+Item_Totem_PoisonResist_2,图腾：抗毒II
+Item_Totem_PoisonResist_3,图腾：抗毒III
+Item_Totem_PoisonResist,图腾：抗毒I
+Item_Totem_SpaceResist_2,图腾：抗空间II
+Item_Totem_SpaceResist_3,图腾：抗空间III
+Item_Totem_SpaceResist,图腾：抗空间I
+Item_FaceMask_Fly_Eye,蝇蝇眼镜
+Item_Totem_Efficiency_3,图腾：效率III
+Item_Totem_Efficiency,图腾：效率I
+Item_Totem_GunControl_2,图腾：控枪II
+Item_Totem_GunControl_3,图腾：控枪III
+Item_Totem_GunControl,图腾：控枪I
+Item_Totem_GunCritDamage_2,图腾：爆头II
+Item_Totem_GunCritDamage_3,图腾：爆头III
+Item_Totem_GunCritDamage,图腾：爆头I
+Item_Totem_GunDistance_2,图腾：狙击II
+Item_Totem_GunDistance_3,图腾：狙击III
+Item_Totem_GunDistance,图腾：狙击I
+Item_Totem_MeleeAttack_3,图腾：战士III
+Item_Totem_MeleeCritRate_2,图腾：狂战II
+Item_Totem_MeleeCritRate_3,图腾：狂战III
+Item_Totem_MeleeCritRate,图腾：狂战I
+Item_Totem_SenseRange_2,图腾：感知II
+Item_Totem_SenseRange_3,图腾：感知III
+Item_Totem_SenseRange,图腾：感知I
+Item_Totem_Speed_3,图腾：轻盈III
+Item_Totem_Strong_2,图腾：健壮II
+Item_Aritichoke,洋蓟
+Item_Aubergine,茄子
+Item_Banana,香蕉
+Item_Cauliflower,花椰菜
+Item_Cherry,樱桃
+Item_Chilli,辣椒
+Item_Coconut,椰子
+Item_Corn,玉米
+Item_Cucumber,黄瓜
+Item_Garlic,大蒜
+Item_Grape,葡萄
+Item_Leek,韭葱
+Item_Lemon,柠檬
+Item_Mango,芒果
+Item_Onion,洋葱
+Item_Orange,橙子
+Item_Pear,梨
+Item_Pineapple,菠萝
+Item_Starfruit,杨桃
+Item_Strawberry,草莓
+Item_Tomato,西红柿
+Item_Watermelon,西瓜
+Item_Seed_Apple,苹果的种子
+Item_Seed_Aritichoke,洋蓟的种子
+Item_Seed_Aubergine,茄子的种子
+Item_Seed_Banana,香蕉的种子
+Item_Seed_Carrot,胡萝卜的种子
+Item_Seed_Cauliflower,花椰菜的种子
+Item_Seed_Cherry,樱桃的种子
+Item_Seed_Chilli,辣椒的种子
+Item_Seed_Coconut,椰子的种子
+Item_Seed_Corn,玉米的种子
+Item_Seed_Cucumber,黄瓜的种子
+Item_Seed_Garlic,大蒜的种子
+Item_Seed_Grape,葡萄的种子
+Item_Seed_Leek,韭葱的种子
+Item_Seed_Lemon,柠檬的种子
+Item_Seed_Mango,芒果的种子
+Item_Seed_Onion,洋葱的种子
+Item_Seed_Orange,橙子的种子
+Item_Seed_Pear,梨的种子
+Item_Seed_Pineapple,菠萝的种子
+Item_Seed_Potato,奶牛面具
+Item_Seed_Pumpkin,南瓜的种子
+Item_Seed_Starfruit,杨桃的种子
+Item_Seed_Strawberry,草莓的种子
+Item_Seed_Tomato,西红柿的种子
+Item_Seed_Watermelon,西瓜的种子
+Item_Key_GroundZero_NavigationBoss,保险箱钥匙
+Item_Quest_DefenceShield,防御立场发生器
+Item_AR_AK47_Quest,特制AK47
+Item_AR_AUGA3_Quest,特制StG 77A3
+Item_BR_M14_Quest,特制M14
+Item_PST_Glick_Quest,特制格力克
+Item_SHT_MP155_Quest,特制MP-155
+Item_SMG_SR3M_Quest,特制SR-3M
+Item_Sniper_Mosin_Quest,特制Mosin-Nagant
+Item_Quest_Letter_StudentList,毕业生名单
+Item_Key_Farm_HeadMasterRoom,校长室钥匙
+Item_Quest_NBDetergent,特种洁厕灵
+Item_Quest_Farm_SpecialDrugs,腿疼特效药
+Item_Quest_Farm_SpecialDrugs_2,手疼特效药
+Item_Quest_Farm_SpecialDrugsQuest_Farm_3,头疼特效药
+Item_Quest_Farm_SpecialDrugs_4,特效止疼药
+Item_Quest_Farm_SpecialDrugs_5,强效蛋白粉
+Item_Injection_FireResist,火抗性针
+Item_Injection_PoisonResist,毒抗性针
+Item_Injection_SpaceResist,空间抗性针
+Item_HeavyWheel,沉重的轮胎
+Item_bat,棒球棍
+Item_BP_Bullet_Poop_Normal,蓝图：屎弹
+Item_Armor_FireLandProtect,石棉工作服
+Item_Helmat_FireLandProtect,石棉工作头盔
+Item_Armor_ElecLandProtect,橡胶工作服
+Item_Backpack_SBossElec_ResSpace,比利背包
+Item_Backpack_SBossFire_ResElec,啪啦背包
+Item_Backpack_SBossPoison_LowDurResFire,咕噜背包
+Item_Helmat_Egg,碎蛋壳
+Item_Key_Apartment102,员工公寓102钥匙
+Item_Key_Apartment105,员工宿舍105钥匙
+Item_Key_Apartment101,员工宿舍101钥匙
+Item_Key_Dormitory101,宿舍楼101钥匙
+Item_FutureConsoleController,未来控制器
+Item_SHT_TOZ66_Fire,TOZ-66龙息
+Item_GPUSLI,显示卡SLI
+Item_BP_GPUSLI,蓝图：显示卡SLI
+Item_Quest_916_ElectricParts_Ming,一堆电子零件
+Item_Armor_FC,高手护甲
+Item_BP_ColorMonitor,蓝图：彩色显示器
+Item_FishingRod_LV2,好钓竿
+Item_FishingRod_LV3,厉害钓竿
+Item_Fish_Black_Snapper,绿鲷鱼
+Item_Fish_Blue_Damselfish,蓝雀鲷鱼
+Item_Fish_Blue_Jack_Mackerel,青南乳鱼
+Item_Fish_Blue_Mackerel,蓝鲭鱼
+Item_Fish_Blue_Marlin,蓝枪鱼
+Item_Fish_Blue_Sailfish,蓝旗鱼
+Item_Fish_Blue_Tang,蓝吊鱼
+Item_Fish_Brown_and_White_Grunt,棕白石鲈
+Item_Fish_Brown_Mullet,棕梭鱼
+Item_Fish_Brown_Sardine,棕沙丁鱼
+Item_Fish_Golden_Fish,黄金鱼
+Item_Fish_Green_Cod,绿胖头鱼
+Item_Fish_Green_Triggerfish,绿背鳙鱼
+Item_Fish_Green_Yellow_Porcupinefish,绿黄鲀
+Item_Fish_Grey_Catshark,蓝猫鲨鱼
+Item_Fish_Orange_Greenfin_Fish,绿青鳍鱼
+Item_Fish_Orange_Squirrelfish,橙金鳞鱼
+Item_Fish_Pink_Clownfish,粉金鱼
+Item_Fish_Purple_Damselfish,紫雀鲷鱼
+Item_Fish_Redfin_Flamefish,粉鳍火焰鱼
+Item_Fish_Redfin_Snapper,红鳍鲷鱼
+Item_Fish_Red_Banded_Fish,红九间鱼
+Item_Fish_Red_Goldfish,红金鱼
+Item_Fish_Red_Grouper,大眼红鱼
+Item_Fish_Red_Spotted_Grouper,红斑鱼
+Item_Fish_White_Angelfish,白燕鱼
+Item_Fish_White_Cod,大头金鱼
+Item_Fish_White_Perch,白扁鱼
+Item_Fish_Yellow_Green_Snapper,黄绿鲷
+Item_Fish_Yellow_Porcupinefish,绿刺豚
+Item_BP_SHT_TOZ66_Fire,蓝图：TOZ-66龙息
+Item_PST_Glick_Space,空间格里克
+Item_Backpack_FC,高手背包
+Item_ArtichokeFloret,洋蓟瓣
+Item_CornKernel,玉米粒
+Item_DicedMango,芒果丁
+Item_Earthworm,蚯蚓
+Item_GrapeGrain,葡萄粒
+Item_Helmat_PeakedCap,鸭舌帽
+Item_ArmorLV5_3,五级重型防弹衣
+Item_ArmorLV4_3,四级重型防弹衣
+Item_ArmorLV3_2,三级重型防弹衣
+Item_ArmorLV4_2,四级作战防弹衣
+Item_ArmorLV5_2,五级作战防弹衣
+Item_ArmorLV3_3,三级作战防弹衣
+Item_HelmatLV1_2,坦克头盔
+Item_HelmatLV2_2,二级轻型头盔
+Item_HelmatLV3_2,三级轻型头盔
+Item_HelmatLV3_UN,维和头盔
+Item_HelmatLV4_2,四级防弹头盔
+Item_HelmatLV5_1Hear,五级轻型头盔
+Item_HelmatLV5_2,五级作战头盔
+Item_Key_HiddenWarehouse_Cellar_Fork,地窖岔路钥匙
+Item_Key_Defense_System,防空系统密钥
+Item_Grenade_SpaceBoss,*Item_Grenade_SpaceBoss*
+Item_Grenade_SpaceBoss,*Item_Grenade_SpaceBoss*
+Item_FishingBait,鱼饵
+Item_BP_ElecGrenade,蓝图：电击手雷
+Item_BP_FireGrenade,蓝图：燃烧弹
+Item_BP_ToxGrenade,蓝图：毒雾弹
+Item_Aquarium,水族箱
+Item_BP_BR_Storm_Space,蓝图：风暴枪
+Item_Formula_FishingBait,配方：鱼饵
+Item_BP_Bullet_PWL_L,蓝图：大型能量弹
+Item_Bullet_PWS_H,强化小型能量弹
+Item_ArmorLV1StormProtection,风暴工作服
+Item_Quest_Blueprint_ShipSpace,神秘飞船图纸
+Item_BlueCube,蓝色方块
+Item_Backpack_Cubbe,方块收集装置
+Item_BP_FishingRod_LV2,蓝图：好钓竿
+Item_BP_FishingRod_LV3,蓝图：厉害钓竿
+Item_Key_JLab_MiniGameCartriage,J-Lab放映室钥匙
+Item_fiber_Lv2,高级有机纤维
+Item_fiber_Lv3,顶级有机纤维
+Item_Knife_01_Blade,小直刀
+Item_Knife_02_Short,木柄短刀
+Item_Knife_03_Knuckle,指虎刀
+Item_Knife_04_Karambit,爪刀
+Item_Knife_06_Gurkhakukri,廓尔喀弯刀
+Item_Knife_07_Bayonet,战术刺刀
+Item_Formula_KnifeBox,配方：战术刀具箱
+Item_CandyCan,自制糖果
+Item_Candy,棒棒糖
+Item_PeaceStar,和平星
+Item_FakePeaceStar,和平星
+Item_GunPowderLv5,高级火药
+Item_BP_Bullet_AR_Piercing6,蓝图：AR-特种穿甲弹
+Item_BP_Bullet_BR_Piercing6,蓝图：L-特种穿甲弹
+Item_BP_Bullet_MAG_Piercing6,蓝图：MAG-特种穿甲弹
+Item_BP_Bullet_SHT_Break,蓝图：特种霰弹
+Item_BP_Bullet_SMG_Break,蓝图：S-特种弹
+Item_BP_Bullet_SNP_Piercing6,蓝图：特种穿甲狙击弹
+Item_Key_Farm_NorthFactoryRoom,北厂区小屋钥匙
+Item_GunPowder_Blue,罐装火药（蓝）
+Item_GunPowder_Green,罐装火药（绿）
+Item_GunPowder_Red,罐装火药（红）
+Item_BP_Bullet_SNP_Piercing2,蓝图：穿甲狙击弹
+Item_BP_Bullet_AR_Piercing3,蓝图：AR-穿甲弹
+Item_BP_Bullet_AR_Piercing5,蓝图：AR-高级穿甲弹
+Item_BP_Bullet_BR_Piercing3,蓝图：L-穿甲弹
+Item_BP_Bullet_BR_Piercing5,蓝图：L-高级穿甲弹
+Item_BP_Bullet_MAG_Piercing2,蓝图：MAG-穿甲弹
+Item_BP_Bullet_MAG_Piercing4,蓝图：MAG-高级穿甲弹
+Item_BP_Bullet_SHT_Piercing3,蓝图：穿甲霰弹
+Item_BP_Bullet_SHT_Piercing5,蓝图：高级穿甲霰弹
+Item_BP_Bullet_SMG_Piercing3,蓝图：S-穿甲弹
+Item_BP_Bullet_SMG_Piercing5,蓝图：S-高级穿甲弹
+Item_BP_Bullet_SNP_Piercing4,蓝图：高级穿甲狙击弹
+Item_SaltedFish,战术咸鱼
+Item_ButcherKnife,猪肉刀
+Item_SMG_ArcadeGun_Normal,玩具枪
+Item_Formula_Cola,配方：可乐
+Item_HelmatLV1StormProtection,风暴工作头盔
+Item_Quest_DefenceShield_Text,防御力场操作说明
+Item_BP_ArmorLV5,蓝图：五级防弹衣
+Item_BP_ArmorLV5StormProtection,蓝图：空间防护服终极
+Item_BP_ArmorLV5_2,蓝图：五级作战防弹衣
+Item_BP_ArmorLV5_3,蓝图：五级重型防弹衣
+Item_BP_ArmorLV6,蓝图：六级防弹衣
+Item_BP_BackpackLV5,蓝图：行军背包MAX
+Item_BP_HelmatLV5,蓝图：SCIFI面罩
+Item_BP_HelmatLV5StormProtection,蓝图：空间防护头盔终极
+Item_BP_HelmatLV5_1Hear,蓝图：五级轻型头盔
+Item_BP_HelmatLV5_2,蓝图：五级作战头盔
+Item_BP_HelmatLV6,蓝图：神之电焊头
+Item_Key_Farm_Nursing_Computer,疗养院机房钥匙
+Item_Key_Farm_Nursing_Restaurant,疗养院餐厅钥匙
+Item_Key_Farm_Nursing_Room_1,疗养院房间钥匙-1
+Item_Key_Farm_Nursing_Room_2,疗养院房间钥匙-2
+Item_Accelerator,加速器
+Item_ConcentratedSlurry,浓缩浆质
+Item_CrystalBattery,晶体电池
+Item_CrystalFiltrationUnit,晶体过滤单元
+Item_CrystalBooster,晶体增压器
+Item_BulkSpaceCrystal,大型空间晶体
+Item_SpaceEye,风暴眼
+Item_Formula_ConcentratedSlurry,配方：浓缩浆质
+Item_AR_MF_Poison,MF-毒液
+Item_BP_AR_MF_Poison,蓝图：MF-毒液
+Item_CarBattery,汽车电池
+Item_Splint,骨夹板
+Item_SplintAdv,高级骨夹板
+Item_SurgicalKit,手术包
+Item_SurgicalKitL,增强手术包
+Item_Injection_BleedResist,止血针
+Item_SmallAxe,斧子
+Item_Armor_Football_1,休闲套装
+Item_Armor_Football_2,运动背心
+Item_FackMask_Football_Glass,金丝眼睛
+Item_HeadsetLV2,橘子耳机
+Item_GoldBadge,纯金徽章
+Item_ToteBag,手提袋
+Item_MoonShine,灵魂私酒
+Item_ShitBall,粪球
+Item_Kazoo,卡祖笛
+Item_SHT_Candy_Ghost,糖果枪
+Item_Helmat_PumpkinLight,南瓜灯
+Item_Bullet_Candy_Ghost,糖豆子弹
+Item_PsychicSubstance,灵能物质
+Item_SHT_TOZ106_Ghost,灵能枪
+Item_BP_Bullet_Candy_Ghost,蓝图：糖豆子弹
+Item_ToyBell,玩具铃铛
+Item_BP_SHT_Candy_Ghost,蓝图：糖果枪
+Item_BP_SHT_TOZ106_Ghost,蓝图：灵能枪
+Item_GhostBat,灵能棍
+Item_Backpack_Pumpkin_Jack,杰克背包
+Item_BP_Backpack_Pumpkin_Jack,蓝图：杰克背包
+Item_BP_Helmat_PumpkinLight,蓝图：南瓜灯
+Item_Quest_Camera_Jeff,杰克的照相机
+Item_CoinBlade,铜钱剑
+Item_BP_CoinBlade,蓝图：铜钱剑
+Item_Helmat_WitchHat,巫师帽
+Item_Armor_WitchCloth,巫师服
+Item_Wand,烧火棍
