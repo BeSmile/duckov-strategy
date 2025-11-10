@@ -259,7 +259,7 @@ const CharacterPanel: React.FC<CharacterPanelProps> = ({
                                         className={`flex h-full flex-col items-center justify-center `}
                                     >
                                         <Image
-                                            src={item ?`/images/${item!.icon}` : '/images/cross.png'}
+                                            src={item ?`/images/${item!.icon}` : '/images/cross.webp'}
                                             alt={item?.displayName || 'not found'}
                                             fill
                                             loading="lazy"
