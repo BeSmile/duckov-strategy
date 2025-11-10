@@ -4,7 +4,7 @@
     "private": true,
     "scripts": {
         "dev": "next dev",
-        "build": "npm run build:wasm && next build",
+        "build": "next build",
         "start": "next start",
         "lint": "eslint",
         "format": "prettier --write .",
@@ -34,7 +34,6 @@
         "eslint-config-next": "16.0.1",
         "prettier": "^3.6.2",
         "tailwindcss": "^4",
-        "typescript": "^5",
-        "wasm-pack": "^0.13.1"
+        "typescript": "^5"
     }
 }

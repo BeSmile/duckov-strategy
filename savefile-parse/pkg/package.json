@@ -1,0 +1,15 @@
+{
+  "name": "savefile-parse",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "savefile_parse_bg.wasm",
+    "savefile_parse.js",
+    "savefile_parse.d.ts"
+  ],
+  "main": "savefile_parse.js",
+  "types": "savefile_parse.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
