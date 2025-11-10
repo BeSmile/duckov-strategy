@@ -5,7 +5,7 @@ import {
     Inventory,
     ItemEntry,
     ItemTreeData,
-    ItemVariable,
+    ItemVariable, MasterKey,
     SlotContent,
 } from '@/app/[locale]/archived/types';
 import { ItemLink } from '@/app/components/ClientProxy';
@@ -532,6 +532,17 @@ export const ArchiveUpload: React.FC<ArchiveUploadProps> = ({
         }
     }
 
+    const allKeys: MasterKey[] = items.filter(item => {
+        const tags = item?.tags || [];
+        return tags.includes('Key') && !tags.includes('SpecialKey');
+    }).map(key => {
+        const hs = archive?.masterKeys?.map(key => key.id) || [];
+        return {
+            id: key.id,
+            active: hs.includes(key.id)
+        } as unknown as MasterKey
+    })
+
     return (
         <>
             <div className="text-center mb-8">
@@ -706,14 +717,14 @@ export const ArchiveUpload: React.FC<ArchiveUploadProps> = ({
                                     <h2 className="text-xl font-semibold text-white">
                                         {t('master_keys.activated')}
                                         {t('master_keys.title')} (
-                                        {archive.masterKeys.length})
+                                        {archive.masterKeys.length}/{allKeys.length})
                                     </h2>
                                 </div>
                                 <div className="px-6 py-4">
-                                    <div className="max-h-64 overflow-y-auto pr-1">
+                                    <div className="max-h-150 overflow-y-auto pr-1">
                                         <div className="grid grid-cols-4 gap-2">
-                                            {archive.masterKeys.map(
-                                                (key, idx) => {
+                                            {allKeys.map(
+                                                (key) => {
                                                     // Find master key item from items.json (usually items with "MasterKey" tag)
                                                     const keyItem =
                                                         items.find(
@@ -722,9 +733,9 @@ export const ArchiveUpload: React.FC<ArchiveUploadProps> = ({
                                                                     'Key'
                                                                 ) &&
                                                                 item.id ===
-                                                                key.id &&
-                                                                key.active
+                                                                key.id
                                                         );
+
 
                                                     return (
                                                         keyItem && (
@@ -733,7 +744,8 @@ export const ArchiveUpload: React.FC<ArchiveUploadProps> = ({
                                                                 itemsLangs={
                                                                     itemsLangs
                                                                 }
-                                                                key={idx}
+                                                                disabled={!key.active}
+                                                                key={key.id}
                                                                 item={
                                                                     keyItem
                                                                 }
