@@ -27,16 +27,22 @@ export default async function MonsterCard({
         .flatMap((drop) =>
             drop.itemPool.entries.map((entry) => {
                 const item = items.find((i) => i.id === entry.value.itemTypeID);
+                // 隐藏玩家不可见
+                if (item?.tags.includes("DestroyOnLootBox")) {
+                    return {
+                        item: undefined
+                    };
+                }
+                const chance = entry?.percent ? Number(entry.percent.replace("%", '') ) / 100 : drop.chance;
                 return {
                     item,
-                    chance: drop.chance,
+                    chance,
                     weight: entry.weight,
                     comment: drop.comment,
                 };
             })
         )
         .filter((dropItem) => dropItem.item);
-
     const enName = monster.nameKey || monster.m_Name;
 
     return (
@@ -185,7 +191,7 @@ export default async function MonsterCard({
                                 {dropItems.map((dropItem, idx) => (
                                     <ItemLink extra={<p className="text-xs text-gray-500 dark:text-gray-400">
                                         {(
-                                            dropItem.chance * 100
+                                            (dropItem?.chance || 0) * 100
                                         ).toFixed(1)}
                                         %
                                     </p>} locale={locale} key={idx} item={dropItem.item as unknown as Item} itemsLangs={itemsLangs}/>

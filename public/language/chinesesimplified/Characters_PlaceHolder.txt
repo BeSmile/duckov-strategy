@@ -4,7 +4,7 @@ Cname_BALeader_Child,BA成员
 Cname_Prison_Boss,典狱长
 Cname_Prison,近战狱卒
 Cname_Boss_Fly,蝇蝇队长
-Cname_Boss_Fly_Child,蝇蝇队长(成员)
+Cname_Boss_Fly_Child,蝇蝇成员
 Cname_3Shot_Child,三枪哥
 Cname_Boss_Arcade,暴走街机
 Cname_StormCreature,风暴生物
@@ -31,3 +31,5 @@ Cname_StormBoss1_Child,噗咙
 Cname_StormBoss5,口口口口
 Cname_SchoolBully_Child,校友
 Cname_LabTestObjective,LAB测试对象
+Cname_Boss_Red,????
+Cname_Football_2,球员

@@ -1016,7 +1016,7 @@ Item_Formula_KnifeBox,配方：战术刀具箱
 Item_CandyCan,自制糖果
 Item_Candy,棒棒糖
 Item_PeaceStar,和平星
-Item_FakePeaceStar,和平星
+Item_FakePeaceStar,和平星粉末
 Item_GunPowderLv5,高级火药
 Item_BP_Bullet_AR_Piercing6,蓝图：AR-特种穿甲弹
 Item_BP_Bullet_BR_Piercing6,蓝图：L-特种穿甲弹
