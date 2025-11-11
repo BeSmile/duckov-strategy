@@ -7,6 +7,26 @@ use wasm_bindgen::prelude::*;
 use crate::archived::Archive;
 use crate::format::fix_json_format;
 
+macro_rules! load_optional_field {
+    ($source:expr, $target:expr, $field:ident, $getter:ident) => {
+        if let Some(value) = $source.$getter() {
+            $target.$field = value.into();
+        }
+    };
+}
+
+
+macro_rules! load_optional_fields {
+    ($source:expr, $target:expr, { $($field:ident => $getter:ident),* $(,)? }) => {
+        $(
+            if let Some(value) = $source.$getter() {
+                $target.$field = value.into();
+            }
+        )*
+    };
+}
+
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
 pub fn init() {
     // 设置 panic hook
@@ -27,7 +47,7 @@ pub fn init() {
 
 #[wasm_bindgen]
 pub fn process_file(data: &[u8]) -> Result<String, JsValue> {
-    info!("开始处理文件, 数据长度: {} 字节", data.len());
+    // info!("开始处理文件, 数据长度: {} 字节", data.len());
 
     let json_content = std::str::from_utf8(data).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
@@ -47,51 +67,64 @@ pub fn process_file(data: &[u8]) -> Result<String, JsValue> {
         );
     }
 
-    if let Some(economy_data) = save_data.get_currency() {
-        archive.economy_data = economy_data;
-    }
+    // if let Some(economy_data) = save_data.get_currency() {
+    //     archive.economy_data = economy_data;
+    // }
 
-    if let Some(exp) = save_data.get_exp() {
-        archive.exp = exp;
-    }
-    if let Some(keys) = save_data.get_master_keys() {
-        archive.master_key = keys;
-    }
-    if let Some(death) = save_data.get_death_list() {
-        archive.death_list = death;
-    }
-    if let Some(save_time) = save_data.get_save_time() {
-        archive.save_time = save_time;
-    }
-    if let Some(inventory) = save_data.get_player_storage() {
-        archive.player_storage = inventory;
-    }
-    if let Some(inventory) = save_data.get_inventory_safe() {
-        archive.inventory_safe = inventory;
-    }
-    if let Some(health) = save_data.get_health() {
-        archive.health = health;
-    }
-    if let Some(items) = save_data.get_character_items() {
-        archive.character_item_data = items;
-    }
+   
+
+    // if let Some(exp) = save_data.get_exp() {
+    //     archive.exp = exp;
+    // }
+    // if let Some(keys) = save_data.get_master_keys() {
+    //     archive.master_key = keys;
+    // }
+
     
-    if let Some(game_lock) = save_data.get_game_lock() {
-        archive.game_lock = game_lock;
-    }
+    // if let Some(death) = save_data.get_death_list() {
+    //     archive.death_list = death;
+    // }
+
+    // if let Some(save_time) = save_data.get_save_time() {
+    //     archive.save_time = save_time;
+    // }
+    // if let Some(inventory) = save_data.get_player_storage() {
+    //     archive.player_storage = inventory;
+    // }
+    // if let Some(inventory) = save_data.get_inventory_safe() {
+    //     archive.inventory_safe = inventory;
+    // }
+    // if let Some(health) = save_data.get_health() {
+    //     archive.health = health;
+    // }
+    // if let Some(items) = save_data.get_character_items() {
+    //     archive.character_item_data = items;
+    // }
+
+    load_optional_fields!(save_data, archive, {
+        economy_data => get_currency,
+        exp => get_exp,
+        master_key => get_master_keys,
+        death_list => get_death_list,
+        save_time => get_save_time,
+        player_storage => get_player_storage,
+        inventory_safe => get_inventory_safe,
+        health => get_health,
+        character_item_data => get_character_items,
+        game_lock => get_game_lock,
+        quests => get_quests,
+    });
     
+    // if let Some(game_lock) = save_data.get_game_lock() {
+    //     archive.game_lock = game_lock;
+    // }
     archive.extract_kill_counts(&save_data.data);
     
-    if let Some(quests) = save_data.get_quests() {
-        archive.quests = quests;
-    }
+    // if let Some(quests) = save_data.get_quests() {
+    //     archive.quests = quests;
+    // }
 
     let archive_json = serde_json::to_string(&archive).unwrap();
 
     Ok(archive_json)
-}
-
-#[wasm_bindgen]
-pub fn add(a: i32, b: i32) -> i32 {
-    a + b
 }
