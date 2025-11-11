@@ -20,3 +20,6 @@ console_log = "1.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+
+[build]
+target = "wasm32-unknown-unknown"
