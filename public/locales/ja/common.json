@@ -88,7 +88,9 @@
     "monsters_title": "モンスター",
     "monsters_desc": "敵のステータスとドロップアイテムを表示",
     "quests_title": "クエスト",
-    "quests_desc": "クエストチェーンと報酬を探索"
+    "quests_desc": "クエストチェーンと報酬を探索",
+    "buff": "バフ",
+    "buff_desc": "バフ状態および説明 "
   },
   "common": {
     "loading": "読み込み中...",

@@ -17,3 +17,9 @@ export interface Item {
 export type KeyValue = {
     [key: string]: string;
 };
+
+export type UnityReference = {
+    fileID: number;
+    guid: string;
+    type: number;
+}

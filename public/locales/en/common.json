@@ -90,7 +90,9 @@
     "monsters_title": "Monsters",
     "monsters_desc": "View enemy stats and loot drops",
     "quests_title": "Quests",
-    "quests_desc": "Explore quest chains and rewards"
+    "quests_desc": "Explore quest chains and rewards",
+    "buff": "Buff",
+    "buff_desc": "Buff Status and Description"
   },
   "common": {
     "loading": "Loading...",

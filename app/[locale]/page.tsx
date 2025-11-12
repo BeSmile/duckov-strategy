@@ -92,6 +92,20 @@ export default async function Home() {
                             </p>
                         </div>
                     </Link>
+                    <Link
+                        href="/buffs"
+                        className="group relative overflow-hidden rounded-lg bg-white dark:bg-gray-800 p-8 shadow-md hover:shadow-xl transition-all border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500"
+                    >
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="text-4xl">✨</div>
+                            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                                {t('home.buff')}
+                            </h2>
+                            <p className="text-center text-gray-600 dark:text-gray-400">
+                                {t('home.buff_desc')}
+                            </p>
+                        </div>
+                    </Link>
                 </div>
             </main>
         </div>

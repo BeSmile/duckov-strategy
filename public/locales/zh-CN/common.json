@@ -93,7 +93,9 @@
     "monsters_title": "怪物",
     "monsters_desc": "查看敌人属性和掉落物",
     "quests_title": "任务",
-    "quests_desc": "探索任务链和奖励"
+    "quests_desc": "探索任务链和奖励",
+    "buff": "Buff",
+    "buff_desc": "Buff状态以及说明"
   },
   "common": {
     "loading": "加载中...",

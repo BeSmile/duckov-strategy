@@ -89,7 +89,9 @@
     "monsters_title": "怪物",
     "monsters_desc": "查看敵人屬性和掉落物",
     "quests_title": "任務",
-    "quests_desc": "探索任務鏈和獎勵"
+    "quests_desc": "探索任務鏈和獎勵",
+    "buff": "Buff",
+    "buff_desc": "增益狀態以及說明"
   },
   "common": {
     "loading": "載入中...",

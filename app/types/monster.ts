@@ -1,3 +1,5 @@
+import { UnityReference } from '@/app/types/item';
+
 export interface ItemPoolEntry {
     value: {
         itemTypeID: number;
@@ -44,11 +46,7 @@ export interface Monster {
     nameKey: string;
     health: number;
     exp: number;
-    characterModel?: {
-        fileID: number;
-        guid: string;
-        type: number;
-    };
+    characterModel?: UnityReference;
     shootCanMove?: number;
     sightDistance?: number;
     sightAngle?: number;
