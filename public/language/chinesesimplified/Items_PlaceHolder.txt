@@ -1013,6 +1013,7 @@ Item_Knife_04_Karambit,爪刀
 Item_Knife_06_Gurkhakukri,廓尔喀弯刀
 Item_Knife_07_Bayonet,战术刺刀
 Item_Formula_KnifeBox,配方：战术刀具箱
+Item_KnifeBox,战术刀具箱
 Item_CandyCan,自制糖果
 Item_Candy,棒棒糖
 Item_PeaceStar,和平星
