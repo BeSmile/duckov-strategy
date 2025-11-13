@@ -209,10 +209,10 @@ export default async function MonsterCard({
                             <div className="grid  grid-cols-2 gap-2">
                                 {dropItems.map((dropItem, ix) => {
                                     const mapping = [
-                                        'border-pink-300 dark:border-pink-300',
-                                        'border-orange-200 dark:border-orange-200',
-                                        'border-emerald-300 dark:border-emerald-300',
-                                        'border-cyan-300 dark:border-cyan-300',
+                                        'border-pink-500 dark:border-pink-300',
+                                        'border-orange-400 dark:border-orange-200',
+                                        'border-emerald-500 dark:border-emerald-300',
+                                        'border-cyan-500 dark:border-cyan-300',
                                     ];
                                     const group_show =
                                         dropItem.itemPools.length > 1;

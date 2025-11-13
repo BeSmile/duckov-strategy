@@ -49,7 +49,7 @@
     "search_placeholder": "搜索怪物名称或 ID...",
     "showing": "显示",
     "of": "共",
-    "monsters": "只怪物  (备注：数据基于代码导出，特殊掉落可能有锁遗漏，请谅解)",
+    "monsters": "只怪物  (备注：数据基于代码导出，特殊掉落可能有所遗漏，请谅解)",
     "monsters_enemies": "Boss & 敌人",
     "no_results": "没有找到匹配的怪物",
     "health": "生命值",
