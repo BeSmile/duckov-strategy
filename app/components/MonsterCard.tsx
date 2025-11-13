@@ -27,6 +27,9 @@ export default async function MonsterCard({
     const dropItems = monster.itemsToGenerate
         .map((drop) => {
             const entries = drop.itemPool.entries;
+            const hasPer = entries?.some((item) => item.percent); // 有掉率
+            const needCalPer = !hasPer; // 需要计算
+            const isSingle = entries.length <= 1;
             const itemPools = entries
                 .flatMap((entry) => {
                     const item = items.find(
@@ -40,7 +43,9 @@ export default async function MonsterCard({
                     }
                     const chance = entry?.percent
                         ? Number(entry.percent.replace('%', '')) / 100
-                        : drop.chance / entries.length;
+                        : needCalPer && !isSingle
+                          ? 1 / entries.length
+                          : drop.chance;
 
                     return {
                         item,
