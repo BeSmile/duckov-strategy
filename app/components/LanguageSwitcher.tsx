@@ -20,7 +20,6 @@ export default function LanguageSwitcher() {
     // 初始化设置一次
     const handleLanguages = useCallback(async () => {
         const stored = await getStoredLanguage();
-        console.log(stored, 'stored');
         setCurrentLang(stored);
         await changeLanguage(stored);
     }, []);
