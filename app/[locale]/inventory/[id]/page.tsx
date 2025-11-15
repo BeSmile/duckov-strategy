@@ -249,7 +249,7 @@ export default async function ItemDetailPage(
                             )}
                         </div>
 
-                        {attrs.length>=0 &&(
+                        {attrs.length>0 &&(
                             <ItemAttribute locale={locale} attrs={attrs} />
                         )}
                     </div>
