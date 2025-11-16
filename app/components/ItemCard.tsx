@@ -22,17 +22,19 @@ export type ItemLinkProps =  Omit<LinkProps, 'href'>& {
     disabled?: boolean;
     className?: string;
     border?: string;
+    badge?: React.ReactNode;
 };
 
-export function ItemLink({ locale, item, extra, t, qualityBorder, disabled, className, border = "border-gray-200 dark:border-gray-600" }: ItemLinkProps){
+export function ItemLink({ locale, item, extra, t, qualityBorder, disabled, badge, className, border = "border-gray-200 dark:border-gray-600" }: ItemLinkProps){
     const qualityConfig = getQualityConfig(item.quality);
     const borderColor =  qualityBorder ? qualityConfig.borderColor: '';
     const color = disabled ? 'grayscale' : borderColor;
     return <Link
         locale={locale}
         href={`/inventory/${item!.id}`}
-        className={`${color} flex items-center  justify-center gap-2  p-2 bg-gray-50 dark:bg-gray-700 rounded border ${border} h-14 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${className}`}
+        className={`${color} relative flex items-center  justify-center gap-2  p-2 bg-gray-50 dark:bg-gray-700 rounded border ${border} h-14 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${className}`}
     >
+        {badge && badge}
         <div className='relative w-8 h-8 flex-shrink-0 bg-gray-100 dark:bg-gray-600 rounded'>
             <Image
                 src={`/images/${item!.icon}`}

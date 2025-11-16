@@ -33,3 +33,4 @@ Cname_SchoolBully_Child,校友
 Cname_LabTestObjective,LAB测试对象
 Cname_Boss_Red,????
 Cname_Football_2,球员
+Item_Bait1,Item_Bait1

@@ -19,7 +19,7 @@ export default async function MonsterCard({
     items,
     locale,
 }: MonsterCardProps) {
-    const t = await getTranslations({locale});
+    const t = await getTranslations({ locale });
 
     // item有2层爆率
     const dropItems = monster.itemsToGenerate
@@ -57,6 +57,7 @@ export default async function MonsterCard({
                 itemPools,
                 // weight: entry.weight,
                 comment: drop.comment,
+                randomCount: drop.randomCount,
             };
         })
         .filter((dropItem) => dropItem.itemPools);
@@ -207,6 +208,9 @@ export default async function MonsterCard({
                         <div className="max-h-64 overflow-y-auto pr-1 relative">
                             <div className="grid  grid-cols-2 gap-2">
                                 {dropItems.map((dropItem, ix) => {
+                                    const randomCount = dropItem.randomCount;
+                                    const isRange =
+                                        randomCount.y > randomCount.x;
                                     const mapping = [
                                         'border-pink-500 dark:border-pink-300',
                                         'border-orange-400 dark:border-orange-200',
@@ -226,6 +230,17 @@ export default async function MonsterCard({
                                         (itemPool, idx) => {
                                             return (
                                                 <ItemLink
+                                                    badge={
+                                                        isRange && (
+                                                            <div
+                                                                className="absolute font-mono font-bold text-yellow-600 dark:text-yellow-400 right-1 bottom-0 text-sm"
+                                                                key={`${idx}-range`}
+                                                            >
+                                                                {randomCount.x}~
+                                                                {randomCount.y}
+                                                            </div>
+                                                        )
+                                                    }
                                                     t={t}
                                                     // 暂时关闭vercel的预加载
                                                     prefetch={PREFETCH}
