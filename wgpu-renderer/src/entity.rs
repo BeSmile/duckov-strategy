@@ -1,8 +1,11 @@
 use cgmath::{Deg, Matrix4, Quaternion};
+use cgmath::num_traits::ToPrimitive;
 use half::f16;
 use serde::Deserialize;
 use wgpu::{Device, Queue, VertexFormat};
 use wgpu::util::DeviceExt;
+use crate::scene::Scene;
+use crate::unity::{UnityVertexAttribute, UnityVertexAttributeDescriptor, UnityVertexFormat};
 
 pub trait IVertex{
     fn desc<'a>() -> wgpu::VertexBufferLayout<'a>;
@@ -29,6 +32,7 @@ impl Vertex {
 
 impl IVertex for Vertex {
     fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
+        println!("Vertex desc sizeof: {}", std::mem::size_of::<Self>());
         wgpu::VertexBufferLayout{
             array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
             step_mode: Default::default(),
@@ -51,41 +55,19 @@ impl IVertex for Vertex {
                 wgpu::VertexAttribute{
                     format: VertexFormat::Float16x2,
                     offset: std::mem::size_of::<[f32; 7]>() as wgpu::BufferAddress,
-                    shader_location: 3,
+                    shader_location: 4,
                 }
             ],
         }
     }
 }
 
-// 每个mesh都有自己的desc
-#[derive(Debug, Clone)]
-pub struct Mesh{
-    pub name: String,
-    pub vertex_buffer: wgpu::Buffer,
-    pub index_buffer: wgpu::Buffer,
-    
-    // 顶点数量
-    pub vertex_count: u32,
-    pub index_count: u32,
-    // 后续使用
-    // pub num_elements: u32,//
-    // pub material: usize,
-}
-
-impl Mesh{
-    // pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, mesh_name: &str) -> Mesh{
-    //     let vertex_buffer = device.create_buffer_init(&wgpu::VertexBufferLayout)
-    // }
-    
-}
-
 #[derive(Debug, Deserialize)]
 pub struct Channel{
-    pub stream: i8,
-    pub offset: i8,
-    pub format: i8,
-    pub dimension: i8,
+    pub stream: u8,
+    pub offset: u8,
+    pub format: u8,
+    pub dimension: u8,
 }
 
 #[derive(Debug, Deserialize)]
@@ -137,6 +119,26 @@ pub struct MeshAsset{
     pub mesh: MeshRaw
 }
 
+// 每个mesh都有自己的desc
+#[derive(Debug, Clone)]
+pub struct Mesh{
+    pub name: String,
+    pub vertex_buffer: wgpu::Buffer,
+    pub index_buffer: wgpu::Buffer,
+
+    // 顶点数量
+    pub vertex_count: u32,
+    pub index_count: u32,
+
+    // unity的描述
+    pub vertex_descriptors: Vec<UnityVertexAttributeDescriptor>,
+    // pub pipeline_layout: wgpu::PipelineLayout,
+    pub render_pipeline: wgpu::RenderPipeline,
+    // 后续使用
+    // pub num_elements: u32,//
+    // pub material: usize,
+}
+
 impl Mesh{
     // 转换并反转缠绕顺序
     // pub fn parse_index_buffer(hex_string: &str) -> Vec<u32> {
@@ -150,7 +152,7 @@ impl Mesh{
     //
     //     indices
     // }
-    
+
     fn parse_vertex_data(hex_string: &str) -> Vec<Vertex> {
         //     let mut vertices: Vec<Vertex> = Vec::with_capacity(vertex_count);
         //     // 清理数据
@@ -219,24 +221,27 @@ impl Mesh{
 
         // 解码十六进制字符串为字节
         let bytes = hex::decode(cleaned).expect("Invalid hex string");
-        println!("Index: sizeof {:?}", bytes);
+        // println!("Index: sizeof {:?}", bytes);
         // 将字节转换为 u16 索引数组
         let indices: &[u16] = bytemuck::cast_slice(&bytes);
 
         indices.to_vec()
     }
 
-    pub fn from_asset(buff:  &[u8], device: &Device, queue: &Queue) -> anyhow::Result<Mesh> {
+    // 初始化pipeline 以及各类的布局
+    pub fn from_unity_data(buff:  &[u8], device: &Device, scene: &Scene, config: &wgpu::SurfaceConfiguration) -> anyhow::Result<Mesh> {
         let content = std::str::from_utf8(buff)?;
         let raw_asset = serde_yaml::from_str::<MeshAsset>(content)?;
         let raw = raw_asset.mesh;
         let Some(sub_mesh) = raw.sub_mesh.get(0) else {
             return Err(anyhow::anyhow!("Mesh does not contain sub mesh"));
         };
-        
+
         let vertices = Mesh::parse_vertex_data(&raw.vertex_data._type_less_data);
-        // println!("vertices: {:?}", vertices);
+        println!("vertices: {:?}", vertices);
         let indices = Mesh::parse_index_buffer(&raw.index_buffer);
+
+        let vertex_descriptors = Self::render_descriptors(raw.vertex_data.m_channels);
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor{
             label: Some(&format!("Mesh_Vertice: {}", raw.m_name)),
@@ -250,17 +255,137 @@ impl Mesh{
             usage: wgpu::BufferUsages::INDEX,
         });
 
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
+            label: Some(&format!("Mesh_PipelineLayout: {}", raw.m_name)),
+            bind_group_layouts: &[
+                // 相机
+                &scene.camera.bind_group_layout,
+                // 环境光 & 背景色
+                &scene.scene_bind_group_layout,
+                // 光照
+                &scene.light_manager.bind_group_layout,
+            ],
+            push_constant_ranges: &[],
+        });
+
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
+        });
+        
+        let buffer_layout = Self::get_vertex_buffer_layout(&vertex_descriptors);
+
+        let primitive = wgpu::PrimitiveState {
+            // 设置3点成面
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            strip_index_format: None,
+            front_face: wgpu::FrontFace::Ccw,
+            // cull_mode: Some(wgpu::Face::Back),
+            cull_mode: None,
+            unclipped_depth: false,
+            polygon_mode: wgpu::PolygonMode::Fill,
+            conservative: false,
+        };
+
+        let multisample = wgpu::MultisampleState {
+            count: 1,
+            mask: !0,
+            alpha_to_coverage_enabled: false,
+        };
+        
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
+            label: Some(&format!("Mesh_Pipeline: {}", raw.m_name)),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState{
+                module: &shader,
+                entry_point: Some("vs_main"),
+                compilation_options: Default::default(),
+                buffers: &[
+                    buffer_layout.as_ref()
+                ],
+            },
+            primitive,
+            depth_stencil: None,
+            multisample,
+            fragment: Some(wgpu::FragmentState{
+                module: &shader,
+                entry_point: Some("fs_main"),
+                compilation_options: Default::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: config.format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview: None,
+            cache: None,
+        });
+
         Ok(Mesh{
             name: format!("Mesh: {}", raw.m_name),
             vertex_buffer,
             index_buffer,
             index_count: sub_mesh.index_count,
             vertex_count: sub_mesh.vertex_count,
+            vertex_descriptors,
+            render_pipeline
         })
     }
+
+    pub fn get_vertex_stride(vertex_descriptors: &Vec<UnityVertexAttributeDescriptor>) -> wgpu::BufferAddress {
+        vertex_descriptors
+            .iter()
+            .map(|desc| {
+                desc.size_in_bytes() as wgpu::BufferAddress
+            })
+            .sum()
+    }
+
+    pub fn get_vertex_buffer_layout(vertex_descriptors: &Vec<UnityVertexAttributeDescriptor>) -> VertexBufferLayoutOwned {
+        let attributes: Vec<wgpu::VertexAttribute> = vertex_descriptors
+            .iter()
+            .filter_map(|desc| {
+                if let Some(format) = desc.to_wgpu_format(){
+                    let attr = wgpu::VertexAttribute {
+                        offset: desc.offset as wgpu::BufferAddress,
+                        shader_location: desc.shader_location(),
+                        format,
+                    };
+                    Some(attr)
+                } else {
+                    None
+                }
+            }).collect();
+
+        println!(" Self::attributes: {:?}",  attributes);
+        println!(" Self::get_vertex_stride(vertex_descriptors): {:?}",  Self::get_vertex_stride(vertex_descriptors));
+        VertexBufferLayoutOwned {
+            array_stride: Self::get_vertex_stride(vertex_descriptors),
+            step_mode: Default::default(),
+            attributes,
+        }
+    }
+
+    pub fn render_descriptors(m_channels: Vec<Channel>) -> Vec<UnityVertexAttributeDescriptor> {
+        // 根据channel 渲染
+        let mut vertex_descriptors: Vec<UnityVertexAttributeDescriptor> = Vec::new();
+        for (i, channel)     in m_channels.iter().enumerate() {
+            vertex_descriptors.push(UnityVertexAttributeDescriptor{
+                attribute: UnityVertexAttribute::from_u8(i as u8),
+                format: UnityVertexFormat::from_u8(channel.format),
+                dimension: channel.dimension,
+                stream: channel.stream,
+                offset: channel.offset,
+            })
+        }
+
+        vertex_descriptors
+    }
+
+    
 }
 
-// gameObject包含多个Mesh,等同于Model加载
+// gameObject包含多个Mesh,等同于Model加载, 管理pipe_line
 pub struct Model{
     pub id: usize,
     pub name: String,
@@ -268,11 +393,31 @@ pub struct Model{
 }
 
 impl Model{
-    pub fn render<'a>(&self, render_pass: &mut wgpu::RenderPass<'a>, transform: &Transform) {
-        // 多个mesh进行渲染顶点
-        for mesh in &self.meshs {
-            println!("Mesh: {}", mesh.index_count);
-            render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
+    // pub fn render<'a>(&self, render_pass: &mut wgpu::RenderPass<'a>, transform: &Transform) {
+    //     // 多个mesh进行渲染顶点
+    //     for mesh in &self.meshs {
+    //         render_pass.set_pipeline(&mesh.render_pipeline);
+    //         render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+    //         render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+    //         // 创建pipeline 布局等等，设置buffer之类
+    //         render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
+    //     }
+    // }
+}
+
+#[derive(Debug, Clone)]
+pub struct VertexBufferLayoutOwned {
+    pub array_stride: wgpu::BufferAddress,
+    pub step_mode: wgpu::VertexStepMode,
+    pub attributes: Vec<wgpu::VertexAttribute>,
+}
+
+impl VertexBufferLayoutOwned {
+    pub fn as_ref(&self) -> wgpu::VertexBufferLayout {
+        wgpu::VertexBufferLayout {
+            array_stride: self.array_stride,
+            step_mode: self.step_mode,
+            attributes: &self.attributes,
         }
     }
 }
@@ -324,14 +469,9 @@ impl Entity {
         render_pass: &mut wgpu::RenderPass<'a>,
         model: &'a Model,
     ) {
-        if !self.visible {
-            return;
-        }
-
-        // 绑定模型特定的资源并渲染
-        model.render(render_pass, &self.transform);
+        
     }
-    
+
     // 更新函数，主要会用作自旋转等操作
     pub fn update(&self, delta_time: f32) {
         // 后续更新

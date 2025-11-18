@@ -4,7 +4,9 @@ struct VertexInput{
     @location(0) position: vec3<f32>,
     @location(1) normal: vec4<f32>,
     @location(2) tangent: vec4<f32>,
-    @location(3) tex_coords: vec2<f32>,
+    //   @location(3) color: vec4<f32>,
+    @location(4) uv0: vec2<f32>,
+//   @location(5) uv1: vec2<f32>,
 }
 
 struct VertexOutput{
@@ -12,6 +14,8 @@ struct VertexOutput{
     @location(0) normal: vec4<f32>,
     @location(1) tangent: vec4<f32>,
     @location(2) tex_coords: vec2<f32>,
+    @location(4) uv: vec2<f32>,  // ✅ 添加这一行
+
 }
 
 struct CameraUniform{
@@ -40,6 +44,8 @@ fn vs_main(input: VertexInput) -> VertexOutput{
     out.normal = input.normal;
 
     out.clip_position = camera.view_proj * position;
+    out.uv = input.uv0;
+
 //    out.tangent = input.tangent;
 //    out.tex_coords = input.tex_coords;
     return out;
@@ -47,10 +53,10 @@ fn vs_main(input: VertexInput) -> VertexOutput{
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    var ba_color = vec4(0.3, 0.4, 0.5,1.0);
+    var ba_color = vec4(0.1, 0.2, 0.3,1.0);
 
-//    var ambient =  scene.ambient_light * scene.ambient_intensity * ba_color.rgb;
+    var ambient =  scene.ambient_light * scene.ambient_intensity * ba_color.rgb;
 
-//    return vec4(ambient, 1.0);
-    return  vec4(0.1, 0.2,0.3,1.0);
+    return vec4(ambient, 1.0);
+//    return  vec4(0.1, 0.2,0.3,1.0);
 }

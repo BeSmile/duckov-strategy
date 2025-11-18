@@ -123,12 +123,10 @@ impl State {
             println!("SM_Table_01_2.asset: {:?}", e);
             e
         })?;
-
-        let asset = Mesh::from_asset(&bytes, &device, &queue)?;
-
-        // println!("asset2: {:?}", asset);
     
         let mut scene = Scene::new(&device, &config);
+
+        let asset = Mesh::from_unity_data(&bytes, &device, &scene, &config)?;
         
         scene.add_model(Model{
             id: 0,
@@ -292,11 +290,6 @@ impl State {
                 timestamp_writes: None,
             });
 
-            _render_pass.set_pipeline(&self.render_pipeline);
-            _render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            // print!("self.index_buffer: {:?}", self.index_buffer);
-            _render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            
             self.scene.render(&mut _render_pass);
             
             // _render_pass.draw_indexed(0..768, 0, 0..1);

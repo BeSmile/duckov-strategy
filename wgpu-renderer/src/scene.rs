@@ -1,8 +1,25 @@
+use std::collections::HashMap;
 use std::time::Instant;
 use wgpu::{Device};
 use crate::camera::Camera;
 use crate::entity::{Entity, Model};
 use crate::light::{DirectionalLight, LightManager, PointLight};
+
+pub type PipelineId = String;
+
+pub struct PipelineManager {
+    pipelines: HashMap<PipelineId, wgpu::RenderPipeline>,
+    current_pipeline: Option<PipelineId>,
+}
+
+impl PipelineManager {
+    pub fn new() -> Self {
+        Self{
+            pipelines: Default::default(),
+            current_pipeline: None,
+        }
+    }
+}
 
 
 pub struct Scene {
@@ -21,7 +38,7 @@ pub struct Scene {
     scene_bind_group: wgpu::BindGroup,
 
     pub elapsed_time: f32,
-
+    pub pipeline_manager: PipelineManager,
 }
 
 #[repr(C)]
@@ -38,7 +55,7 @@ impl Scene {
         let light_manager = LightManager::new(device);
         let camera = Camera::new(device, config.width as f32 / config.height as f32);
 
-        let ambient_light = [0.1;3];
+        let ambient_light = [0.9;3];
 
         let scene_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor{
             label: Some("Scene Uniform Buffer"),
@@ -73,6 +90,7 @@ impl Scene {
                 }
             ],
         });
+        
 
         Scene{
             light_manager,
@@ -91,12 +109,17 @@ impl Scene {
             models:Vec::new(),
             entities:Vec::new(),
             elapsed_time: Instant::now().elapsed().as_secs_f32(),
+            pipeline_manager: PipelineManager::new(),
         }
     }
-    
+
     pub fn add_model(&mut self, model: Model) {
         self.entities.push(Entity::new(model.id));
         self.models.push(model);
+    }
+    
+    pub fn add_pipelines(&mut self, pipeline_id: PipelineId, pipeline: wgpu::RenderPipeline) {
+        self.pipeline_manager.pipelines.insert(pipeline_id, pipeline);
     }
 
     // 初始化设置环境光等
@@ -128,32 +151,32 @@ impl Scene {
         // 更新场景数据 比如环境光, fog颜色
         let scene_uniforms = SceneUniforms{
             ambient_light: self.ambient_light,
-            ambient_intensity: 0.5,
+            ambient_intensity: 0.2,
             fog_color: [0.5, 0.6, 0.7],
             fog_density: 0.0,
         };
-        
+
         // scene_uniform_buffer 理解是一个管道buffer
         queue.write_buffer(&self.scene_uniform_buffer, 0, bytemuck::bytes_of(&scene_uniforms));
-        
+
         // 渲染所有的models数据
         for entity in &mut self.entities {
             entity.update(delta_time);
         }
-        
+
         self.elapsed_time += delta_time;
     }
 
     // fn update_dynamic_lighting(&mut self, delta_time: f32) {
     //     // 昼夜循环：24 小时 = 24 秒（加速）
     //     let time_of_day = (self.elapsed_time % 24.0) / 24.0;
-    // 
+    //
     //     // 白天：暖色调，强度高
     //     // 夜晚：冷色调，强度低
     //     if let Some(sun) = self.light_manager.directional_lights.get_mut(0) {
     //         let intensity = ((time_of_day * std::f32::consts::TAU).cos() + 1.0) / 2.0;
     //         sun.intensity = intensity * 0.8 + 0.2; // 0.2 到 1.0
-    // 
+    //
     //         // 调整颜色
     //         if time_of_day < 0.25 || time_of_day > 0.75 {
     //             // 夜晚：蓝色调
@@ -166,16 +189,27 @@ impl Scene {
     // }
 
     pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
-        // 设置渲染管线- 动态管线
-        // bind_group全局资源
-        render_pass.set_bind_group(0, &self.camera.bind_group, &[]);
-        render_pass.set_bind_group(1, &self.scene_bind_group, &[]);
-        render_pass.set_bind_group(2, &self.light_manager.bind_group, &[]);
-
         // 渲染实体
         for entity in &self.entities {
+            if !entity.visible {
+                return ;
+            }
             if let Some(model) = self.models.get(entity.model_id) {
-                entity.render(render_pass, model);
+                // 绑定模型特定的资源并渲染
+                for mesh in &model.meshs {
+                    render_pass.set_pipeline(&mesh.render_pipeline);
+                    render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+                    render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
+                    // 设置渲染管线- 动态管线
+                    // bind_group全局资源
+                    render_pass.set_bind_group(0, &self.camera.bind_group, &[]);
+                    render_pass.set_bind_group(1, &self.scene_bind_group, &[]);
+                    render_pass.set_bind_group(2, &self.light_manager.bind_group, &[]);
+                    
+                    // 创建pipeline 布局等等，设置buffer之类
+                    render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
+                }
             }
         }
     }
