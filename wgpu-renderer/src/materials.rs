@@ -1,10 +1,9 @@
 use std::collections::HashMap;
-use image::DynamicImage;
-use serde::{Deserialize, Deserializer, Serialize};
-use wgpu::{AddressMode, Device, FilterMode, Queue, TextureView};
-use wgpu::naga::compact::KeepUnused::No;
+use serde::{Deserialize, Serialize};
+use wgpu::{Device, FilterMode, Queue, TextureView};
 use crate::resource::load_binary;
 use crate::unity::{Color, UnityReference};
+use crate::utils::get_block_mesh;
 
 // 由 texture view 采样 组成
 #[derive(Debug, Clone)]
@@ -54,7 +53,7 @@ impl Texture {
 
         Self { texture, view, sampler }
     }
-    
+
     // 创建一个白色的材质
     fn create_dummy_white(device: &Device, queue: &Queue) -> Texture {
         use wgpu::util::DeviceExt;
@@ -231,7 +230,6 @@ impl MaterialLayoutBuilder {
 // 材质 一次管线渲染只用一个材质
 #[derive(Debug)]
 pub struct Material{
-    pub id: usize,
     pub name: String,
     pub albedo_texture: Option<Texture>,      // _MainTex
     pub normal_texture: Option<Texture>,      // _BumpMap
@@ -259,6 +257,8 @@ impl Material{
         let mut metallic_texture = None;
         let mut ao_texture = None;
 
+        let block_mesh = get_block_mesh();
+
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor{
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -269,7 +269,7 @@ impl Material{
             // compare: Some(wgpu::CompareFunction::LessEqual), // 5.
             lod_min_clamp: 0.0,
             lod_max_clamp: 100.0,
-            
+
             ..Default::default()
         });
 
@@ -279,11 +279,11 @@ impl Material{
 
         let mut entries = Vec::new();
 
-        if let Some(main_tex) = tex_envs.main_tex {
+        if let (Some(main_tex), false) = (tex_envs.main_tex, block_mesh) {
             println!("main_tex: {:?}", main_tex);
             // 临时设置主贴图
-            let texture_bytes = load_binary("T_ElectricControlBox_C.png").await?;
-            let texture = Texture::from_bytes(device, queue, texture_bytes, "T_ElectricControlBox_C.png")?;
+            let texture_bytes = load_binary("Car_15_AlbedoTransparency_1 1.png").await?;
+            let texture = Texture::from_bytes(device, queue, texture_bytes, "Car_15_AlbedoTransparency_1 1.png")?;
 
             albedo_texture = Some(texture);
         } else {
@@ -296,14 +296,13 @@ impl Material{
         });
         builder.add_texture();
 
-        if let Some(normal_map) = tex_envs.normal_map {
+        if let (Some(normal_map), false) = (tex_envs.normal_map, block_mesh) {
             println!("normal_map: {:?}", normal_map);
             // 临时设置主贴图
             let texture_bytes = load_binary("T_ElectricControlBox_MMOR.png").await?;
 
             let texture = Texture::from_bytes(device, queue, texture_bytes, "T_ElectricControlBox_MMOR.png")?;
             normal_texture = Some(texture);
-
         } else {
             normal_texture = Some(white_texture.clone());
         }
@@ -315,9 +314,11 @@ impl Material{
         builder.add_texture();
 
         // 暂时创建白色的
-        if let Some(metallic_smoothness) = tex_envs.metallic_smoothness {
+        if let (Some(metallic_smoothness), false) = (tex_envs.metallic_smoothness, block_mesh) {
             let texture = Texture::create_dummy_white(&device, &queue);
-            metallic_texture = Some(texture);
+            // metallic_texture = Some(texture);
+            metallic_texture = Some(white_texture.clone());
+
         } else {
             metallic_texture = Some(white_texture.clone());
         }
@@ -327,9 +328,11 @@ impl Material{
         });
         builder.add_texture();
 
-        if let Some(m_texture) = tex_envs.m_texture {
+        if let (Some(m_texture), false) = (tex_envs.m_texture , block_mesh){
             let texture = Texture::create_dummy_white(&device, &queue);
-            ao_texture = Some(texture);
+            // ao_texture = Some(texture);
+            ao_texture = Some(white_texture.clone());
+
         } else {
             ao_texture = Some(white_texture.clone());
         }
@@ -359,7 +362,6 @@ impl Material{
         });
 
         Ok(Self{
-            id: 1,
             name: unity_material.name,
             albedo_texture,
             normal_texture,

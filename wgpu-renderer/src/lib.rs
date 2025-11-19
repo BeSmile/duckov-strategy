@@ -19,14 +19,14 @@ use winit::{
 };
 
 use crate::resource::load_binary;
-use crate::scene::{Scene};
+use crate::scene::{ResourceManager, Scene};
 use crate::unity::UnityScene;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 use wgpu::VertexFormat;
 use wgpu::util::RenderEncoder;
 use winit::window::WindowId;
-use crate::entity::{IVertex, Mesh, Model, Vertex};
+use crate::entity::{Mesh, Model, Vertex};
 use crate::materials::Material;
 
 pub struct State {
@@ -35,13 +35,15 @@ pub struct State {
     device: wgpu::Device,
     queue: wgpu::Queue,
     pub scene: Scene,
+    // 资源管理器
+    pub resource_manager: ResourceManager,
     config: wgpu::SurfaceConfiguration,
     is_surface_configured: bool,
 
     // 顶点buffer，可以通过set方法写入数据
-    vertex_buffer: wgpu::Buffer,
+    // vertex_buffer: wgpu::Buffer,
     // 顶点索引数据
-    index_buffer: wgpu::Buffer,
+    // index_buffer: wgpu::Buffer,
     // render_pipeline: wgpu::RenderPipeline,
     // scene: UnityScene
 }
@@ -119,25 +121,10 @@ impl State {
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
-
-        let bytes = load_binary("SM_ElectricControlBox_11.asset").await.map_err(|e| {
-            println!("SM_Table_01_2.asset: {:?}", e);
-            e
-        })?;
        
         let mut scene = Scene::new(&device, &config);
-
-        let asset = Mesh::from_unity_data(&bytes, &device, &queue, &mut scene, &config).await?;
-
-        scene.add_model(Model{
-            id: 0,
-            name: "first".to_string(),
-            meshs: vec![
-                asset.clone()
-            ]
-        });
-
-        // let render_pipeline = Self::create_render_pipeline(&device, &config, &scene);
+        let mut resource_manager = ResourceManager::new();
+        Scene::loading_scene(&device, &queue, &mut scene, &mut resource_manager, &config).await?;
 
         Ok(Self {
             window,
@@ -146,10 +133,11 @@ impl State {
             queue,
             config,
             is_surface_configured: false,
-            vertex_buffer: asset.vertex_buffer,
-            index_buffer: asset.index_buffer,
+            // vertex_buffer: asset.vertex_buffer,
+            // index_buffer: asset.index_buffer,
             // render_pipeline,
             scene,
+            resource_manager,
         })
     }
 
@@ -299,7 +287,7 @@ impl State {
                 timestamp_writes: None,
             });
 
-            self.scene.render(&mut _render_pass);
+            self.scene.render(&mut _render_pass, &mut self.resource_manager);
 
             // _render_pass.draw_indexed(0..768, 0, 0..1);
             // _render_pass.draw(0..268, 0..1);

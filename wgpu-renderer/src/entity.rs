@@ -1,17 +1,17 @@
-use cgmath::{Deg, Matrix4, Quaternion};
-use cgmath::num_traits::ToPrimitive;
+use std::collections::HashMap;
+use cgmath::{ Matrix4, One, Quaternion, SquareMatrix, Vector3, Zero};
 use half::f16;
 use serde::Deserialize;
-use wgpu::{Device, Queue, VertexFormat};
+use wgpu::{Device, Queue, SurfaceConfiguration};
 use wgpu::util::DeviceExt;
 use crate::materials::{Material, Texture};
 use crate::resource::load_binary;
 use crate::scene::Scene;
 use crate::unity::{UnityVertexAttribute, UnityVertexAttributeDescriptor, UnityVertexFormat};
 
-pub trait IVertex{
-    fn desc<'a>() -> wgpu::VertexBufferLayout<'a>;
-}
+// pub trait IVertex{
+//     fn desc<'a>() -> wgpu::VertexBufferLayout<'a>;
+// }
 
 
 #[repr(C)]
@@ -42,7 +42,7 @@ impl Vertex {
         self.tex_coords[0] = f16::from_f32(u.fract().abs());
         self.tex_coords[1] = f16::from_f32(v.fract().abs());
     }
-    
+
     pub fn analyze_uv_pattern_by_normal(vertices: &[Vertex], indices: &[u16]) {
         let mut x_faces_uvs = Vec::new();
         let mut y_faces_uvs = Vec::new();
@@ -149,36 +149,36 @@ impl Vertex {
 
 }
 
-impl IVertex for Vertex {
-    fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
-        wgpu::VertexBufferLayout{
-            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-            step_mode: Default::default(),
-            attributes: &[
-                wgpu::VertexAttribute{
-                    format: VertexFormat::Float32x3,
-                    offset: 0,
-                    shader_location: 0,
-                },
-                wgpu::VertexAttribute{
-                    format: VertexFormat::Float16x4,
-                    offset:  std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
-                    shader_location: 1,
-                },
-                wgpu::VertexAttribute{
-                    format: VertexFormat::Float16x4,
-                    offset:  std::mem::size_of::<[f32; 5]>() as wgpu::BufferAddress,
-                    shader_location: 2,
-                },
-                wgpu::VertexAttribute{
-                    format: VertexFormat::Float16x2,
-                    offset: std::mem::size_of::<[f32; 7]>() as wgpu::BufferAddress,
-                    shader_location: 4,
-                }
-            ],
-        }
-    }
-}
+// impl IVertex for Vertex {
+//     fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
+//         wgpu::VertexBufferLayout{
+//             array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+//             step_mode: Default::default(),
+//             attributes: &[
+//                 wgpu::VertexAttribute{
+//                     format: VertexFormat::Float32x3,
+//                     offset: 0,
+//                     shader_location: 0,
+//                 },
+//                 wgpu::VertexAttribute{
+//                     format: VertexFormat::Float16x4,
+//                     offset:  std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+//                     shader_location: 1,
+//                 },
+//                 wgpu::VertexAttribute{
+//                     format: VertexFormat::Float16x4,
+//                     offset:  std::mem::size_of::<[f32; 5]>() as wgpu::BufferAddress,
+//                     shader_location: 2,
+//                 },
+//                 wgpu::VertexAttribute{
+//                     format: VertexFormat::Float16x2,
+//                     offset: std::mem::size_of::<[f32; 7]>() as wgpu::BufferAddress,
+//                     shader_location: 4,
+//                 }
+//             ],
+//         }
+//     }
+// }
 
 #[derive(Debug, Deserialize)]
 pub struct Channel{
@@ -255,7 +255,7 @@ pub struct Mesh{
     // 后续使用
     // pub num_elements: u32,//
     // pub material: usize,
-    pub material_id: Option<usize>,
+    // pub material_id: Option<usize>,
 }
 
 impl Mesh{
@@ -348,7 +348,7 @@ impl Mesh{
     }
 
     // 初始化pipeline 以及各类的布局
-    pub async fn from_unity_data(buff:  &[u8], device: &Device, queue: &Queue, scene: &mut Scene, config: &wgpu::SurfaceConfiguration) -> anyhow::Result<Mesh> {
+    pub async fn from_unity_data(buff: &[u8], device: &Device, scene: &Scene, material: &Material, config: &SurfaceConfiguration) -> anyhow::Result<Mesh> {
         let content = std::str::from_utf8(buff)?;
         let raw_asset = serde_yaml::from_str::<MeshAsset>(content)?;
         let raw = raw_asset.mesh;
@@ -364,7 +364,6 @@ impl Mesh{
 
         println!("analyze_uv_pattern_by_normal(&vertices) :{:?}", Vertex::analyze_uv_pattern_by_normal(&vertices, &indices));
 
-
         let vertex_descriptors = Self::render_descriptors(raw.vertex_data.m_channels);
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor{
@@ -379,27 +378,40 @@ impl Mesh{
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let mat_bytes = load_binary("MAT_ElectricControlBox.mat").await.map_err(|e| {
-            println!("Load mat asset error: {:?}", e);
-            e
-        })?;
+       
+        let render_pipeline = Self::create_render_pipeline(device, scene, &config, &material, &vertex_descriptors, &raw.m_name);
 
-        // 后续处理多布局layout的问题
-        let material = Material::from_unity_bytes(&mat_bytes, &device, &queue).await?;
+
+        Ok(Mesh{
+            name: format!("Mesh: {}", raw.m_name),
+            vertex_buffer,
+            index_buffer,
+            index_count: sub_mesh.index_count,
+            vertex_count: sub_mesh.vertex_count,
+            vertex_descriptors,
+            render_pipeline,
+        })
+    }
+
+    fn create_render_pipeline(device: &Device, scene: &Scene, config: &SurfaceConfiguration, material: &Material, vertex_descriptors: &Vec<UnityVertexAttributeDescriptor>, label: &String) -> wgpu::RenderPipeline {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
-            label: Some(&format!("Mesh_PipelineLayout: {}", raw.m_name)),
+            label: Some(&format!("Mesh_PipelineLayout: {}", label)),
             bind_group_layouts: &[
                 // 相机
                 &scene.camera.bind_group_layout,
                 // 环境光 & 背景色
                 &scene.scene_bind_group_layout,
                 // 光照
-                &scene.light_manager.bind_group_layout,
-                &material.bind_group_layout
+                // &scene.light_manager.bind_group_layout,
+                // transforms座标系
+                &scene.transform_bind_group_layout,
+                
+                &material.bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
+
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
@@ -425,9 +437,8 @@ impl Mesh{
             mask: !0,
             alpha_to_coverage_enabled: false,
         };
-
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
-            label: Some(&format!("Mesh_Pipeline: {}", raw.m_name)),
+        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
+            label: Some(&format!("Mesh_Pipeline: {}", label)),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState{
                 module: &shader,
@@ -458,19 +469,6 @@ impl Mesh{
             }),
             multiview: None,
             cache: None,
-        });
-        let id = material.id;
-        scene.add_material(id, material);
-
-        Ok(Mesh{
-            name: format!("Mesh: {}", raw.m_name),
-            vertex_buffer,
-            index_buffer,
-            index_count: sub_mesh.index_count,
-            vertex_count: sub_mesh.vertex_count,
-            vertex_descriptors,
-            render_pipeline,
-            material_id: Some(id),
         })
     }
 
@@ -565,79 +563,206 @@ impl VertexBufferLayoutOwned {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug)]
 pub struct Transform {
-    pub position: [f32; 3],
-    pub _padding1: f32,
-    pub rotation: [f32; 4], // quaternion
-    pub scale: [f32; 3],
-    pub _padding2: f32,
+    pub position: Vector3<f32>,
+    pub rotation: Quaternion<f32>, // quaternion
+    pub scale: Vector3<f32>,
+    // 局部变换矩阵（缓存）
+    local_matrix: Matrix4<f32>,
+    // 世界变换矩阵（缓存）
+    world_matrix: Matrix4<f32>,
+
+    pub is_dirty: bool,
 }
 
-// 每个实体都有一个model， model在scene中管理, 有多个子mesh，暂时处理单个mesh的情况
-pub struct Entity {
-    pub model_id: usize,
-    // 整体的mesh 变量
-    pub transform: Transform,
-
-    // pub material_override: Option<Material>,
-    pub visible: bool,
-    pub parent: Option<usize>,
-    pub children: Vec<usize>,
-}
-
-impl Entity {
-    pub fn new(model_id: usize, parent: Option<usize>,) -> Self {
+impl Transform {
+    pub fn new() -> Self {
         Self {
-            model_id,
-            transform: Transform {
-                position: [0.0, 0.0, 0.0],
-                _padding1: 0.0,
-                rotation: [0.0, 0.0, 0.0, 1.0],
-                scale: [1.0, 1.0, 1.0],
-                _padding2: 0.0,
-            },
-            // material_override: None,
-            visible: true,
-            parent,
-            children: Vec::new(),
+            position: Vector3::zero(),
+            rotation: Quaternion::one(),
+            scale: Vector3::new(1.0, 1.0, 1.0),
+            local_matrix: Matrix4::identity(),
+            world_matrix: Matrix4::identity(),
+            is_dirty: true,
         }
     }
 
-    pub fn set_position(&mut self, position: [f32; 3]) {
-        self.transform.position = position;
+    // 计算局部变换矩阵
+    pub fn compute_local_matrix(&mut self) {
+        if self.is_dirty {
+            let translation = Matrix4::from_translation(self.position);
+            let rotation = Matrix4::from(self.rotation);
+            let scale = Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z);
+
+            // 变换顺序：缩放 -> 旋转 -> 平移
+            self.local_matrix = translation * rotation * scale;
+            self.is_dirty = false;
+        }
     }
 
-    pub fn set_scale(&mut self, scale: [f32; 3]) {
-        self.transform.scale = scale;
+    pub fn set_position(&mut self, pos: cgmath::Vector3<f32>) {
+        self.position = pos;
+        self.is_dirty = true;
+    }
+}
+
+// 每个实体都有一个model， model在scene中管理, 有多个子mesh，暂时处理单个mesh的情况
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub struct Entity(u32);
+
+impl Entity {
+    pub fn new(id: u32) -> Self {
+        Self(id)
     }
 
-    pub fn set_rotation(&mut self, rotation: [f32; 4]) {
-        self.transform.rotation = rotation;
+    pub fn id(&self) -> u32 {
+        self.0
+    }
+}
+
+// 保管Transform层级
+pub struct TransformSystem {
+    // 局部变换
+    local_transforms: HashMap<Entity, Transform>,
+    // 世界变换（缓存）
+    world_matrices: HashMap<Entity, Matrix4<f32>>,
+    // 父子关系
+    parents: HashMap<Entity, Entity>,
+    children: HashMap<Entity, Vec<Entity>>,
+}
+
+impl TransformSystem {
+    pub fn new() -> Self {
+        Self {
+            local_transforms: HashMap::new(),
+            world_matrices: HashMap::new(),
+            parents: HashMap::new(),
+            children: HashMap::new(),
+        }
+    }
+    
+    pub fn add_transform(&mut self, entity: Entity, transform: Transform) {
+        self.local_transforms.insert(entity, transform);
     }
 
-    // 更新函数，主要会用作自旋转等操作
-    pub fn update(&self, delta_time: f32) {
-        // 后续更新
+    pub fn set_parent(&mut self, parent: Entity, child: Entity, ) {
+        self.parents.insert(child, parent);
+        self.children.entry(parent)
+            .or_insert_with(Vec::new)
+            .push(child);
     }
 
-    pub fn get_model_matrix(&self) -> Matrix4<f32> {
-        // 计算空间矩阵
-        // 平移矩阵
-        let translation = Matrix4::from_translation(self.transform.position.into());
-        // 旋转矩阵
-        let rotation = Matrix4::from(Quaternion::new(
-            self.transform.rotation[3], // w (实部)
-            self.transform.rotation[0], // x
-            self.transform.rotation[1], // y
-            self.transform.rotation[2], // z
-        ));
-        let scale = Matrix4::from_nonuniform_scale(
-            self.transform.scale[0],
-            self.transform.scale[1],
-            self.transform.scale[2],
-        );
+    // 更新所有Transform
+    pub fn update(&mut self) {
+        // 找出所有根节点
+        let roots: Vec<Entity> = self.local_transforms.keys()
+            .filter(|e| !self.parents.contains_key(e))
+            .copied()
+            .collect();
 
-        translation * rotation * scale
+        // 从根节点开始更新, 更新所有的矩阵
+        for root in roots {
+            self.update_hierarchy(root, Matrix4::identity());
+        }
+    }
+
+    fn update_hierarchy(&mut self, entity: Entity, parent_world: Matrix4<f32>) {
+        // 获取局部变换
+        if let Some(local_transform) = self.local_transforms.get_mut(&entity) {
+            local_transform.compute_local_matrix();
+            let local_matrix = local_transform.local_matrix;
+
+            // 计算世界变换
+            let world_matrix = parent_world * local_matrix;
+            self.world_matrices.insert(entity, world_matrix);
+
+            // 递归更新子节点
+            if let Some(children) = self.children.get(&entity) {
+                let children_vec: Vec<Entity> = children.iter().copied().collect();
+
+                for &child in &children_vec {
+                    self.update_hierarchy(child, world_matrix);
+                }
+            }
+        }
+    }
+
+    // 获取局部 Transform
+    pub fn get_local_transform(&self, entity: Entity) -> Option<&Transform> {
+        self.local_transforms.get(&entity)
+    }
+
+    // 获取可变的局部 Transform（用于修改）
+    pub fn get_local_transform_mut(&mut self, entity: Entity) -> Option<&mut Transform> {
+        self.local_transforms.get_mut(&entity)
+    }
+
+    // 获取世界变换矩阵
+    pub fn get_world_matrix(&self, entity: Entity) -> Option<Matrix4<f32>> {
+        self.world_matrices.get(&entity).copied()
+    }
+
+    // 获取世界变换矩阵的引用
+    pub fn get_world_matrix_ref(&self, entity: Entity) -> Option<&Matrix4<f32>> {
+        self.world_matrices.get(&entity)
+    }
+
+    // 获取父实体
+    pub fn get_parent(&self, entity: Entity) -> Option<Entity> {
+        self.parents.get(&entity).copied()
+    }
+
+    // 获取所有子实体
+    pub fn get_children(&self, entity: Entity) -> Option<&Vec<Entity>> {
+        self.children.get(&entity)
+    }
+
+    // 检查实体是否存在
+    pub fn has_entity(&self, entity: Entity) -> bool {
+        self.local_transforms.contains_key(&entity)
+    }
+
+    // 移除实体（包括其所有子节点）
+    pub fn remove_entity(&mut self, entity: Entity) {
+        // 递归移除所有子节点
+        if let Some(children) = self.children.remove(&entity) {
+            for child in children {
+                self.remove_entity(child);
+            }
+        }
+
+        // 从父节点的子列表中移除
+        if let Some(parent) = self.parents.remove(&entity) {
+            if let Some(siblings) = self.children.get_mut(&parent) {
+                siblings.retain(|&e| e != entity);
+            }
+        }
+
+        // 移除自身数据
+        self.local_transforms.remove(&entity);
+        self.world_matrices.remove(&entity);
+    }
+
+    // 移除父子关系
+    pub fn remove_parent(&mut self, child: Entity) {
+        if let Some(parent) = self.parents.remove(&child) {
+            if let Some(siblings) = self.children.get_mut(&parent) {
+                siblings.retain(|&e| e != child);
+            }
+        }
+    }
+
+    // 获取所有实体
+    pub fn get_all_entities(&self) -> Vec<Entity> {
+        self.local_transforms.keys().copied().collect()
+    }
+
+    // 获取根实体（没有父节点的实体）
+    pub fn get_root_entities(&self) -> Vec<Entity> {
+        self.local_transforms.keys()
+            .filter(|e| !self.parents.contains_key(e))
+            .copied()
+            .collect()
     }
 }

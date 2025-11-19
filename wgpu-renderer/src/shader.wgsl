@@ -30,11 +30,18 @@ struct SceneUniforms{
     fog_density: f32,
 }
 
+struct TransformUniform{
+    orbit_proj: mat4x4<f32>
+}
+
 @group(0) @binding(0)
 var<uniform> camera:CameraUniform;
 
 @group(1) @binding(0)
 var<uniform> scene:SceneUniforms;
+
+@group(2) @binding(0)
+var<uniform> tranforms:mat4x4<f32>;
 
 @group(3) @binding(0)
 var albedo_texture: texture_2d<f32>;
@@ -47,17 +54,14 @@ var ao_texture: texture_2d<f32>;
 @group(3) @binding(4)
 var s_diffuse: sampler;
 
-
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput{
     var out: VertexOutput;
     var position  = vec4<f32>(input.position, 1.0);
+
     out.normal = input.normal;
 
-    out.clip_position = camera.view_proj * position;
-
-     let tiling = vec2<f32>(1.0, 1.0);    // 从 Unity 获取
-        let offset = vec2<f32>(0.0, 0.0);    // 从 Unity 获取
+    out.clip_position = camera.view_proj * tranforms * position;
 
     out.uv0 = vec2<f32>(input.uv0.x,  1.0 - input.uv0.y);
 //    out.uv0 = fract(out.uv0);
