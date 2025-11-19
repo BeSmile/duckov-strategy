@@ -4,6 +4,8 @@ use half::f16;
 use serde::Deserialize;
 use wgpu::{Device, Queue, VertexFormat};
 use wgpu::util::DeviceExt;
+use crate::materials::{Material, Texture};
+use crate::resource::load_binary;
 use crate::scene::Scene;
 use crate::unity::{UnityVertexAttribute, UnityVertexAttributeDescriptor, UnityVertexFormat};
 
@@ -24,15 +26,131 @@ pub struct Vertex {
 
 impl Vertex {
     pub fn flip_z_axis(&mut self) {
+        // 翻转Z轴（位置）
         self.position[2] = -self.position[2];
+        // 翻转法线Z
         self.normal[2] = f16::from_f32(-self.normal[2].to_f32());
+
+        // 翻转切线Z和手性
         self.tangent[2] = f16::from_f32(-self.tangent[2].to_f32());
+        self.tangent[3] = f16::from_f32(-self.tangent[3].to_f32());
+
+        let u = self.tex_coords[0].to_f32();
+        let v = self.tex_coords[1].to_f32();
+
+        // 使用fract()获取小数部分，映射到[0,1]
+        self.tex_coords[0] = f16::from_f32(u.fract().abs());
+        self.tex_coords[1] = f16::from_f32(v.fract().abs());
     }
+    
+    pub fn analyze_uv_pattern_by_normal(vertices: &[Vertex], indices: &[u16]) {
+        let mut x_faces_uvs = Vec::new();
+        let mut y_faces_uvs = Vec::new();
+        let mut z_faces_uvs = Vec::new();
+
+        for chunk in indices.chunks(3) {
+            // 计算三角形的平均法线
+            let v0 = &vertices[chunk[0] as usize];
+            let v1 = &vertices[chunk[1] as usize];
+            let v2 = &vertices[chunk[2] as usize];
+
+            let avg_normal = [
+                (v0.normal[0].to_f32() + v1.normal[0].to_f32() + v2.normal[0].to_f32()) / 3.0,
+                (v0.normal[1].to_f32() + v1.normal[1].to_f32() + v2.normal[1].to_f32()) / 3.0,
+                (v0.normal[2].to_f32() + v1.normal[2].to_f32() + v2.normal[2].to_f32()) / 3.0,
+            ];
+
+            let abs_normal = [
+                avg_normal[0].abs(),
+                avg_normal[1].abs(),
+                avg_normal[2].abs(),
+            ];
+
+            // 收集UV数据
+            let uvs: Vec<(f32, f32)> = chunk.iter().map(|&i| {
+                let v = &vertices[i as usize];
+                (v.tex_coords[0].to_f32(), v.tex_coords[1].to_f32())
+            }).collect();
+
+            // 根据主导法线方向分类
+            if abs_normal[0] > abs_normal[1] && abs_normal[0] > abs_normal[2] {
+                x_faces_uvs.extend(uvs);
+            } else if abs_normal[1] > abs_normal[2] {
+                y_faces_uvs.extend(uvs);
+            } else {
+                z_faces_uvs.extend(uvs);
+            }
+        }
+
+        // 分析每个方向的UV特征
+        println!("X方向面 UV范围: {:?}", Self::calculate_uv_range(&x_faces_uvs));
+        println!("Y方向面 UV范围: {:?}", Self::calculate_uv_range(&y_faces_uvs));
+        println!("Z方向面 UV范围: {:?}", Self::calculate_uv_range(&z_faces_uvs));
+    }
+
+    fn calculate_uv_range(uvs: &[(f32, f32)]) -> (f32, f32, f32, f32) {
+        if uvs.is_empty() { return (0.0, 0.0, 0.0, 0.0); }
+
+        let min_u = uvs.iter().map(|uv| uv.0).min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+        let max_u = uvs.iter().map(|uv| uv.0).max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+        let min_v = uvs.iter().map(|uv| uv.1).min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+        let max_v = uvs.iter().map(|uv| uv.1).max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+
+        (min_u, max_u, min_v, max_v)
+    }
+
+    pub fn detect_uv_mapping_type(vertices: &[Vertex]) -> String {
+        let mut uv_matches_position = true;
+        let mut uv_in_standard_range = true;
+        let mut uv_variance = 0.0f32;
+        for vertex in vertices {
+            let pos = vertex.position;
+            let uv = (vertex.tex_coords[0].to_f32(), vertex.tex_coords[1].to_f32());
+
+            // 检查UV是否超出[0,1]范围
+            if uv.0 < 0.0 || uv.0 > 1.0 || uv.1 < 0.0 || uv.1 > 1.0 {
+                uv_in_standard_range = false;
+            }
+
+            // 检查UV是否与位置坐标相关
+            // Triplanar通常UV会与世界坐标有关
+            let pos_based_uv_x = (pos[0] * 0.1).fract(); // 缩放因子可调
+            let pos_based_uv_y = (pos[1] * 0.1).fract();
+            let pos_based_uv_z = (pos[2] * 0.1).fract();
+
+            // 检查UV是否匹配某个坐标轴投影
+            let matches_xy = (uv.0 - pos_based_uv_x).abs() < 0.1 &&
+                (uv.1 - pos_based_uv_y).abs() < 0.1;
+            let matches_xz = (uv.0 - pos_based_uv_x).abs() < 0.1 &&
+                (uv.1 - pos_based_uv_z).abs() < 0.1;
+            let matches_yz = (uv.0 - pos_based_uv_y).abs() < 0.1 &&
+                (uv.1 - pos_based_uv_z).abs() < 0.1;
+
+            if !matches_xy && !matches_xz && !matches_yz {
+                uv_matches_position = false;
+            }
+
+            uv_variance += uv.0.abs() + uv.1.abs();
+        }
+
+        uv_variance /= vertices.len() as f32;
+
+        // 判断映射类型
+        if !uv_in_standard_range && uv_variance > 1.0 {
+            return "可能是Box/Triplanar映射（UV超出标准范围）".to_string();
+        }
+
+        if uv_matches_position {
+            return "很可能是Triplanar映射（UV与位置相关）".to_string();
+        }
+
+        "标准UV映射".to_string()
+    }
+
 }
 
 impl IVertex for Vertex {
     fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
-        println!("Vertex desc sizeof: {}", std::mem::size_of::<Self>());
         wgpu::VertexBufferLayout{
             array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
             step_mode: Default::default(),
@@ -137,6 +255,7 @@ pub struct Mesh{
     // 后续使用
     // pub num_elements: u32,//
     // pub material: usize,
+    pub material_id: Option<usize>,
 }
 
 impl Mesh{
@@ -199,20 +318,20 @@ impl Mesh{
         let bytes = hex::decode(cleaned).expect("Invalid hex string");
 
         println!("Vertex: sizeof {:?}", std::mem::size_of::<Vertex>());
-        // 检查字节数是否是顶点大小的整数倍
+        // // 检查字节数是否是顶点大小的整数倍
         assert_eq!(bytes.len() % std::mem::size_of::<Vertex>(), 0);
 
         // 转换为顶点数组
         let vertices: &[Vertex] = bytemuck::cast_slice(&bytes);
 
-        let mut vertices = vertices.to_vec(); // 克隆到 Vec<Vertex>
+        let mut vertices = vertices.to_vec();
 
-        // let _ = vertices.iter_mut().map(|v| {
-        //     v.flip_z_axis();
-        //     v
-        // });
+        vertices.iter_mut().for_each(|v| v.flip_z_axis());
 
-        vertices.to_vec()
+        println!("detect_uv_mapping_type(&vertices) :{}", Vertex::detect_uv_mapping_type(&vertices));
+
+        vertices
+
     }
 
     fn parse_index_buffer(hex_string: &str) -> Vec<u16> {
@@ -229,17 +348,22 @@ impl Mesh{
     }
 
     // 初始化pipeline 以及各类的布局
-    pub fn from_unity_data(buff:  &[u8], device: &Device, scene: &Scene, config: &wgpu::SurfaceConfiguration) -> anyhow::Result<Mesh> {
+    pub async fn from_unity_data(buff:  &[u8], device: &Device, queue: &Queue, scene: &mut Scene, config: &wgpu::SurfaceConfiguration) -> anyhow::Result<Mesh> {
         let content = std::str::from_utf8(buff)?;
         let raw_asset = serde_yaml::from_str::<MeshAsset>(content)?;
         let raw = raw_asset.mesh;
         let Some(sub_mesh) = raw.sub_mesh.get(0) else {
             return Err(anyhow::anyhow!("Mesh does not contain sub mesh"));
         };
+        // 处理材质数据
 
         let vertices = Mesh::parse_vertex_data(&raw.vertex_data._type_less_data);
-        println!("vertices: {:?}", vertices);
+
+        // println!("vertices: {:?}", vertices);
         let indices = Mesh::parse_index_buffer(&raw.index_buffer);
+
+        println!("analyze_uv_pattern_by_normal(&vertices) :{:?}", Vertex::analyze_uv_pattern_by_normal(&vertices, &indices));
+
 
         let vertex_descriptors = Self::render_descriptors(raw.vertex_data.m_channels);
 
@@ -255,6 +379,14 @@ impl Mesh{
             usage: wgpu::BufferUsages::INDEX,
         });
 
+        let mat_bytes = load_binary("MAT_ElectricControlBox.mat").await.map_err(|e| {
+            println!("Load mat asset error: {:?}", e);
+            e
+        })?;
+
+        // 后续处理多布局layout的问题
+        let material = Material::from_unity_bytes(&mat_bytes, &device, &queue).await?;
+
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
             label: Some(&format!("Mesh_PipelineLayout: {}", raw.m_name)),
             bind_group_layouts: &[
@@ -264,6 +396,7 @@ impl Mesh{
                 &scene.scene_bind_group_layout,
                 // 光照
                 &scene.light_manager.bind_group_layout,
+                &material.bind_group_layout
             ],
             push_constant_ranges: &[],
         });
@@ -272,16 +405,16 @@ impl Mesh{
             label: Some("Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
-        
+
         let buffer_layout = Self::get_vertex_buffer_layout(&vertex_descriptors);
 
         let primitive = wgpu::PrimitiveState {
             // 设置3点成面
             topology: wgpu::PrimitiveTopology::TriangleList,
             strip_index_format: None,
-            front_face: wgpu::FrontFace::Ccw,
-            // cull_mode: Some(wgpu::Face::Back),
-            cull_mode: None,
+            front_face: wgpu::FrontFace::Cw,
+            cull_mode: Some(wgpu::Face::Back),
+            // cull_mode: None,
             unclipped_depth: false,
             polygon_mode: wgpu::PolygonMode::Fill,
             conservative: false,
@@ -292,7 +425,7 @@ impl Mesh{
             mask: !0,
             alpha_to_coverage_enabled: false,
         };
-        
+
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
             label: Some(&format!("Mesh_Pipeline: {}", raw.m_name)),
             layout: Some(&pipeline_layout),
@@ -305,7 +438,13 @@ impl Mesh{
                 ],
             },
             primitive,
-            depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: Texture::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,  // 近的物体遮挡远的
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
             multisample,
             fragment: Some(wgpu::FragmentState{
                 module: &shader,
@@ -320,6 +459,8 @@ impl Mesh{
             multiview: None,
             cache: None,
         });
+        let id = material.id;
+        scene.add_material(id, material);
 
         Ok(Mesh{
             name: format!("Mesh: {}", raw.m_name),
@@ -328,7 +469,8 @@ impl Mesh{
             index_count: sub_mesh.index_count,
             vertex_count: sub_mesh.vertex_count,
             vertex_descriptors,
-            render_pipeline
+            render_pipeline,
+            material_id: Some(id),
         })
     }
 
@@ -382,10 +524,10 @@ impl Mesh{
         vertex_descriptors
     }
 
-    
+
 }
 
-// gameObject包含多个Mesh,等同于Model加载, 管理pipe_line
+// 可能共享, 管理pipe_line
 pub struct Model{
     pub id: usize,
     pub name: String,
@@ -435,13 +577,17 @@ pub struct Transform {
 // 每个实体都有一个model， model在scene中管理, 有多个子mesh，暂时处理单个mesh的情况
 pub struct Entity {
     pub model_id: usize,
+    // 整体的mesh 变量
     pub transform: Transform,
+
     // pub material_override: Option<Material>,
     pub visible: bool,
+    pub parent: Option<usize>,
+    pub children: Vec<usize>,
 }
 
 impl Entity {
-    pub fn new(model_id: usize) -> Self {
+    pub fn new(model_id: usize, parent: Option<usize>,) -> Self {
         Self {
             model_id,
             transform: Transform {
@@ -453,6 +599,8 @@ impl Entity {
             },
             // material_override: None,
             visible: true,
+            parent,
+            children: Vec::new(),
         }
     }
 
@@ -464,12 +612,8 @@ impl Entity {
         self.transform.scale = scale;
     }
 
-    pub fn render<'a>(
-        &'a self,
-        render_pass: &mut wgpu::RenderPass<'a>,
-        model: &'a Model,
-    ) {
-        
+    pub fn set_rotation(&mut self, rotation: [f32; 4]) {
+        self.transform.rotation = rotation;
     }
 
     // 更新函数，主要会用作自旋转等操作

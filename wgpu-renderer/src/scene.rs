@@ -4,6 +4,7 @@ use wgpu::{Device};
 use crate::camera::Camera;
 use crate::entity::{Entity, Model};
 use crate::light::{DirectionalLight, LightManager, PointLight};
+use crate::materials::{Material, Texture};
 
 pub type PipelineId = String;
 
@@ -39,6 +40,8 @@ pub struct Scene {
 
     pub elapsed_time: f32,
     pub pipeline_manager: PipelineManager,
+    pub materials: HashMap<usize, Material>,
+    pub depth_texture: Texture,
 }
 
 #[repr(C)]
@@ -90,7 +93,7 @@ impl Scene {
                 }
             ],
         });
-        
+
 
         Scene{
             light_manager,
@@ -110,14 +113,20 @@ impl Scene {
             entities:Vec::new(),
             elapsed_time: Instant::now().elapsed().as_secs_f32(),
             pipeline_manager: PipelineManager::new(),
+            materials: HashMap::new(),
+            depth_texture: Texture::create_depth_texture(device,config, "depth_texture"),
         }
     }
 
-    pub fn add_model(&mut self, model: Model) {
-        self.entities.push(Entity::new(model.id));
-        self.models.push(model);
+    pub fn add_material(&mut self, id: usize, material: Material) {
+        self.materials.insert(id, material);
     }
     
+    pub fn add_model(&mut self, model: Model) {
+        self.entities.push(Entity::new(model.id, None));
+        self.models.push(model);
+    }
+
     pub fn add_pipelines(&mut self, pipeline_id: PipelineId, pipeline: wgpu::RenderPipeline) {
         self.pipeline_manager.pipelines.insert(pipeline_id, pipeline);
     }
@@ -166,6 +175,10 @@ impl Scene {
 
         self.elapsed_time += delta_time;
     }
+    
+    fn get_material(&self, id: usize) -> Option<&Material> {
+        self.materials.get(&id)
+    }
 
     // fn update_dynamic_lighting(&mut self, delta_time: f32) {
     //     // 昼夜循环：24 小时 = 24 秒（加速）
@@ -207,6 +220,11 @@ impl Scene {
                     render_pass.set_bind_group(1, &self.scene_bind_group, &[]);
                     render_pass.set_bind_group(2, &self.light_manager.bind_group, &[]);
                     
+                    if let Some(m_id) = mesh.material_id {
+                        let material = &self.materials[&m_id];
+                        render_pass.set_bind_group(3, &material.bind_group, &[]);
+                    }
+
                     // 创建pipeline 布局等等，设置buffer之类
                     render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
                 }

@@ -93,6 +93,15 @@ pub struct UnityReference {
     pub ref_type: i32,
 }
 
+// 颜色数据
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Color {
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UnityMeshRenderer {
     #[serde(rename = "m_GameObject")]

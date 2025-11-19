@@ -14,7 +14,7 @@ struct VertexOutput{
     @location(0) normal: vec4<f32>,
     @location(1) tangent: vec4<f32>,
     @location(2) tex_coords: vec2<f32>,
-    @location(4) uv: vec2<f32>,  // ✅ 添加这一行
+    @location(4) uv0: vec2<f32>,  // ✅ 添加这一行
 
 }
 
@@ -36,6 +36,17 @@ var<uniform> camera:CameraUniform;
 @group(1) @binding(0)
 var<uniform> scene:SceneUniforms;
 
+@group(3) @binding(0)
+var albedo_texture: texture_2d<f32>;
+@group(3) @binding(1)
+var normal_texture: texture_2d<f32>;
+@group(3) @binding(2)
+var metallic_texture: texture_2d<f32>;
+@group(3) @binding(3)
+var ao_texture: texture_2d<f32>;
+@group(3) @binding(4)
+var s_diffuse: sampler;
+
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput{
@@ -44,7 +55,12 @@ fn vs_main(input: VertexInput) -> VertexOutput{
     out.normal = input.normal;
 
     out.clip_position = camera.view_proj * position;
-    out.uv = input.uv0;
+
+     let tiling = vec2<f32>(1.0, 1.0);    // 从 Unity 获取
+        let offset = vec2<f32>(0.0, 0.0);    // 从 Unity 获取
+
+    out.uv0 = vec2<f32>(input.uv0.x,  1.0 - input.uv0.y);
+//    out.uv0 = fract(out.uv0);
 
 //    out.tangent = input.tangent;
 //    out.tex_coords = input.tex_coords;
@@ -53,10 +69,16 @@ fn vs_main(input: VertexInput) -> VertexOutput{
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    var ba_color = vec4(0.1, 0.2, 0.3,1.0);
+    var uv = in.uv0;
 
-    var ambient =  scene.ambient_light * scene.ambient_intensity * ba_color.rgb;
+     // 直接采样主纹理
+    let base_color = textureSample(albedo_texture, s_diffuse, uv);
 
-    return vec4(ambient, 1.0);
-//    return  vec4(0.1, 0.2,0.3,1.0);
+    // 可选：添加法线贴图
+    // let normal_sample = textureSample(t_normal, s_normal, in.tex_coords);
+
+    // 可选：添加自发光
+    // let emission = textureSample(t_emission, s_emission, in.tex_coords);
+
+    return base_color;
 }
