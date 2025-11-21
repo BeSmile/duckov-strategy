@@ -6,9 +6,10 @@ mod scene;
 mod unity;
 mod utils;
 mod entity;
+mod queries;
 
 use log::info;
-use std::fs;
+use std::path::PathBuf;
 use std::sync::Arc;
 use winit::{
     application::ApplicationHandler,
@@ -18,16 +19,16 @@ use winit::{
     window::Window,
 };
 
-use crate::resource::load_binary;
-use crate::scene::{ResourceManager, Scene};
-use crate::unity::UnityScene;
+use crate::resource::{ResourceManager};
+use crate::scene::{Scene};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
-use wgpu::VertexFormat;
-use wgpu::util::RenderEncoder;
+use wgpu::QuerySet;
+use wgpu::wgc::command::QueryError;
 use winit::window::WindowId;
-use crate::entity::{Mesh, Model, Vertex};
-use crate::materials::Material;
+use crate::entity::{ Model, Vertex};
+use crate::materials::{Texture};
+use crate::unity::UnityScene;
 
 pub struct State {
     window: Arc<Window>,
@@ -39,19 +40,22 @@ pub struct State {
     pub resource_manager: ResourceManager,
     config: wgpu::SurfaceConfiguration,
     is_surface_configured: bool,
-
-    // 顶点buffer，可以通过set方法写入数据
-    // vertex_buffer: wgpu::Buffer,
-    // 顶点索引数据
-    // index_buffer: wgpu::Buffer,
-    // render_pipeline: wgpu::RenderPipeline,
-    // scene: UnityScene
+    pub depth_texture: Option<Texture>,
 }
 
 impl State {
     pub async fn new(window: Arc<Window>) -> anyhow::Result<Self> {
         let size = window.inner_size();
 
+
+        #[cfg(target_arch = "wasm32")]
+        let size = {
+            // WASM 环境：确保最小尺寸
+            PhysicalSize::new(
+                size.width.max(1),
+                size.height.max(1)
+            )
+        };
         // 获得Instance面板
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             #[cfg(not(target_arch = "wasm32"))]
@@ -65,6 +69,7 @@ impl State {
 
         let surface = instance.create_surface(window.clone()).unwrap();
 
+
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
@@ -73,9 +78,23 @@ impl State {
             })
             .await?;
 
-        let features = adapter.features();
-        if !features.contains(wgpu::Features::SHADER_F16) {
-            panic!("设备不支持 SHADER_F16 特性");
+        let features = adapter.features()
+            & (wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_PASSES);
+
+        if features.contains(wgpu::Features::TIMESTAMP_QUERY) {
+            println!("Adapter supports timestamp queries.");
+        } else {
+            panic!("Adapter does not support timestamp queries, aborting.");
+        }
+        // if !features.contains(wgpu::Features::SHADER_F16) {
+        //     panic!("设备不支持 SHADER_F16 特性");
+        // }
+
+        let timestamps_inside_passes = features.contains(wgpu::Features::TIMESTAMP_QUERY_INSIDE_PASSES);
+        if timestamps_inside_passes {
+            println!("Adapter supports timestamp queries within passes.");
+        } else {
+            println!("Adapter does not support timestamp queries within passes.");
         }
 
         info!(
@@ -85,8 +104,10 @@ impl State {
         // 通过适配器获取device以及queue(类似管线队列)
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
-                label: None,
-                required_features: wgpu::Features::SHADER_F16, // 启用 f16 支持,
+                label: Some("WGPU Device Adapter"),
+
+                // required_features: wgpu::Features::SHADER_F16, // 启用 f16 支持,
+                required_features: features,
                 required_limits: if cfg!(target_arch = "wasm32") {
                     wgpu::Limits {
                         max_texture_dimension_2d: 4096, // 尝试请求 4096，看 WebGL2 后端是否能支持
@@ -96,7 +117,7 @@ impl State {
                     wgpu::Limits::default()
                 },
                 experimental_features: wgpu::ExperimentalFeatures::default(),
-                memory_hints: Default::default(),
+                memory_hints: wgpu::MemoryHints::MemoryUsage,
                 trace: wgpu::Trace::Off,
             })
             .await?;
@@ -121,10 +142,20 @@ impl State {
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
-       
-        let mut scene = Scene::new(&device, &config);
-        let mut resource_manager = ResourceManager::new();
-        Scene::loading_scene(&device, &queue, &mut scene, &mut resource_manager, &config).await?;
+
+
+        let mut uns = UnityScene::new();
+        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_JLab/Level_JLab_2.unity");
+        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_GroundZero/Level_GroundZero_1.unity");
+        let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_JLab/Level_JLab_2.unity");
+
+        let mut unity_scene = uns.from_str(path)?;
+
+        let mut scene = Scene::new(&device, &config, unity_scene.game_object.len() * 2);
+        let mut resource_manager = ResourceManager::new(&device, &queue);
+        resource_manager.loading_mapping().await?;
+
+        Scene::loading_scene(&device, &queue, &mut scene, &mut unity_scene, &mut resource_manager, &config).await?;
 
         Ok(Self {
             window,
@@ -138,85 +169,9 @@ impl State {
             // render_pipeline,
             scene,
             resource_manager,
+            depth_texture: None,
         })
     }
-
-    // fn create_render_pipeline(
-    //     device: &wgpu::Device,
-    //     config: &wgpu::SurfaceConfiguration,
-    //     scene: &Scene,
-    // ) -> wgpu::RenderPipeline {
-    // 
-    //     let depth_stencil = wgpu::DepthStencilState {
-    //         format: wgpu::TextureFormat::Depth32Float,
-    //         depth_write_enabled: true,
-    //         depth_compare: wgpu::CompareFunction::Less,  // 注意这里
-    //         stencil: wgpu::StencilState::default(),
-    //         bias: wgpu::DepthBiasState::default(),
-    //     };
-    // 
-    //     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-    //         label: Some("Shader"),
-    //         source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
-    //     });
-    // 
-    //     let primitive = wgpu::PrimitiveState {
-    //         // 设置3点成面
-    //         topology: wgpu::PrimitiveTopology::TriangleList,
-    //         strip_index_format: None,
-    //         front_face: wgpu::FrontFace::Ccw,
-    //         // cull_mode: Some(wgpu::Face::Back),
-    //         cull_mode: None,
-    //         unclipped_depth: false,
-    //         polygon_mode: wgpu::PolygonMode::Fill,
-    //         conservative: false,
-    //     };
-    // 
-    //     let multisample = wgpu::MultisampleState {
-    //         count: 1,
-    //         mask: !0,
-    //         alpha_to_coverage_enabled: false,
-    //     };
-    // 
-    //     let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-    //         label: Some("Render Pipeline Layout"),
-    //         bind_group_layouts: &[
-    //             // 相机
-    //             &scene.camera.bind_group_layout,
-    //             // 环境光 & 背景色
-    //             &scene.scene_bind_group_layout,
-    //             // 光照
-    //             &scene.light_manager.bind_group_layout,
-    //         ],
-    //         push_constant_ranges: &[],
-    //     });
-    // 
-    //     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-    //         label: Some("Render Pipeline"),
-    //         layout: Some(&render_pipeline_layout),
-    //         vertex: wgpu::VertexState {
-    //             module: &shader,
-    //             entry_point: Some("vs_main"),
-    //             compilation_options: wgpu::PipelineCompilationOptions::default(),
-    //             buffers: &[Vertex::desc()],
-    //         },
-    //         primitive,
-    //         depth_stencil: None,
-    //         multisample,
-    //         fragment: Some(wgpu::FragmentState {
-    //             module: &shader,
-    //             entry_point: Some("fs_main"),
-    //             compilation_options: wgpu::PipelineCompilationOptions::default(),
-    //             targets: &[Some(wgpu::ColorTargetState {
-    //                 format: config.format,
-    //                 blend: Some(wgpu::BlendState::REPLACE),
-    //                 write_mask: wgpu::ColorWrites::ALL,
-    //             })],
-    //         }),
-    //         multiview: None,
-    //         cache: None,
-    //     })
-    // }
 
     pub fn resize(&mut self, width: u32, height: u32) {
         if width > 0 && height > 0 {
@@ -224,6 +179,9 @@ impl State {
             self.config.height = height;
             self.surface.configure(&self.device, &self.config);
             self.is_surface_configured = true;
+
+            // 重新创建深度纹理
+            self.depth_texture = Some(Texture::create_depth_texture(&self.device, &self.config, "depth_texture"));
         }
     }
 
@@ -254,13 +212,28 @@ impl State {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
+        // 在第一次渲染时创建深度纹理
+        if self.depth_texture.is_none() {
+            let width = output.texture.width();
+            let height = output.texture.height();
+
+            #[cfg(target_arch = "wasm32")]
+            web_sys::console::log_1(&format!(
+                "Creating depth texture: {}x{}", width, height
+            ).into());
+
+            self.depth_texture = Some(Texture::create_depth_texture(&self.device, &self.config, "depth_texture"));
+        }
+
+        let depth_view = self.depth_texture.as_ref().unwrap();
+
+
         // 创建指令
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Render Encoder"),
             });
-
 
         {
             let mut _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -274,9 +247,9 @@ impl State {
                         store: wgpu::StoreOp::Store,
                     },
                 })],
-                // 
+                //
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment{
-                    view: &self.scene.depth_texture.view,
+                    view: &depth_view.view,
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
                         store: wgpu::StoreOp::Store,
@@ -287,12 +260,21 @@ impl State {
                 timestamp_writes: None,
             });
 
-            self.scene.render(&mut _render_pass, &mut self.resource_manager);
-
-            // _render_pass.draw_indexed(0..768, 0, 0..1);
-            // _render_pass.draw(0..268, 0..1);
-
+            self.scene.render(
+                &mut _render_pass,
+                &self.resource_manager
+            );
         }
+
+        // 记录结束时间戳
+        // encoder.write_timestamp(&self.query_set, 1);
+        //
+        // // 解析查询结果到 buffer
+        // encoder.resolve_query_set(&self.query_set, 0..2, &self.query_buffer, 0);
+        //
+        // // 复制到可读取的 staging buffer
+        // encoder.copy_buffer_to_buffer(&self.query_buffer, 0, &self.staging_buffer, 0, 16);
+
 
         // 提交任务
         self.queue.submit(std::iter::once(encoder.finish()));

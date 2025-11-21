@@ -5,42 +5,44 @@ use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
+use cgmath::Vector3;
 use wgpu::VertexAttribute;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Component {
     #[serde(rename = "fileID")]
-    file_id: u32,
+    pub file_id: u32,
 }
 
 pub trait UnityAsset {
-    fn set_file_id(&mut self, file_id: u32);
+    // fn set_file_id(&mut self, file_id: u32);
     fn name(&self) -> &'static str;
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct ComponentEntry {
-    component: Component,
+pub struct ComponentEntry {
+    pub component: Component,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UnityGameObject {
-    #[serde(skip_deserializing)]
-    file_id: u32,
+    // #[serde(skip_deserializing)]
+    // file_id: u32,
+    // 表示当前挂载的组件，包括mesh,transform,脚本组件等
     #[serde(rename = "m_Component")]
-    m_component: Vec<ComponentEntry>,
+    pub m_component: Vec<ComponentEntry>,
     #[serde(rename = "m_Name")]
     m_name: String,
     #[serde(rename = "m_Layer")]
     m_layer: i8,
     #[serde(rename = "m_IsActive")]
-    m_is_active: i8,
+    pub m_is_active: i8,
 }
 
 impl UnityAsset for UnityGameObject {
-    fn set_file_id(&mut self, file_id: u32) {
-        self.file_id = file_id;
-    }
+    // fn set_file_id(&mut self, file_id: u32) {
+    //     self.file_id = file_id;
+    // }
     fn name(&self) -> &'static str {
         "UnityGameObject"
     }
@@ -49,13 +51,15 @@ impl UnityAsset for UnityGameObject {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UnityScene {
     // 归类各个类中，提前命中数据
-    game_object: HashMap<u32, UnityGameObject>,
-    mesh_colliders: HashMap<u32, UnityMeshCollider>,
-    transforms: HashMap<u32, UnityTransform>,
-    mesh_filters: HashMap<u32, UnityMeshFilter>,
-    mesh_renderers: HashMap<u32, UnityMeshRenderer>,
-    box_colliders: HashMap<u32, UnityBoxCollider>,// 不太需要
-    index: HashMap<u32, String>,
+    pub game_object: HashMap<u32, UnityGameObject>,
+    pub mesh_colliders: HashMap<u32, UnityMeshCollider>,
+    pub transforms: HashMap<u32, UnityTransform>,
+    pub mesh_filters: HashMap<u32, UnityMeshFilter>,
+    pub mesh_renderers: HashMap<u32, UnityMeshRenderer>,
+    pub lights: HashMap<u32, UnityLight>,
+    pub soda_lights: HashMap<u32, UnitySodaPointLight>,
+    pub box_colliders: HashMap<u32, UnityBoxCollider>,// 不太需要
+    pub index: HashMap<u32, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -78,23 +82,23 @@ pub struct UnityTransform {
     #[serde(skip_deserializing)]
     file_id: u32,
     #[serde(rename = "m_GameObject")]
-    m_game_object: Component,
+    pub m_game_object: Component,
     #[serde(rename = "m_LocalRotation")]
-    m_local_rotation: Position4,
+    pub m_local_rotation: Position4,
     #[serde(rename = "m_LocalPosition")]
-    m_local_position: Position3,
+    pub m_local_position: Vector3<f32>,
     #[serde(rename = "m_LocalScale")]
-    m_local_scale: Position3,
+    pub m_local_scale: Position3,
     #[serde(rename = "m_Children")]
-    m_children: Vec<Component>,
+    pub m_children: Vec<Component>,
     #[serde(rename = "m_Father")]
-    m_father: Component,
+    pub m_father: Option<Component>,
 }
 
 impl UnityAsset for UnityTransform {
-    fn set_file_id(&mut self, file_id: u32) {
-        self.file_id = file_id;
-    }
+    // fn set_file_id(&mut self, file_id: u32) {
+    //     self.file_id = file_id;
+    // }
     fn name(&self) -> &'static str {
         "UnityTransform"
     }
@@ -109,13 +113,22 @@ pub struct UnityReference {
     pub ref_type: i32,
 }
 
+#[derive(Debug, Clone, Serialize, Default, Deserialize)]
+pub struct TextureReference {
+    #[serde(rename = "fileID")]
+    pub file_id: i64,
+    pub guid: Option<String>,
+    #[serde(rename = "type")]
+    pub ref_type: Option<i32>,
+}
+
 // 颜色数据
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Color {
-    r: u8,
-    g: u8,
-    b: u8,
-    a: u8,
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -125,13 +138,13 @@ pub struct UnityMeshRenderer {
     #[serde(rename = "m_GameObject")]
     m_game_object: Component,
     #[serde(rename = "m_Materials")]
-    m_children: Vec<UnityReference>,
+    pub m_children: Vec<UnityReference>,
 }
 
 impl UnityAsset for UnityMeshRenderer {
-    fn set_file_id(&mut self, file_id: u32) {
-        self.file_id = file_id;
-    }
+    // fn set_file_id(&mut self, file_id: u32) {
+    //     self.file_id = file_id;
+    // }
     fn name(&self) -> &'static str {
         "UnityMeshRenderer"
     }
@@ -144,13 +157,13 @@ pub struct UnityMeshFilter {
     #[serde(rename = "m_GameObject")]
     m_game_object: Component,
     #[serde(rename = "m_Mesh")]
-    m_mesh: UnityReference,
+    pub m_mesh: UnityReference,
 }
 
 impl UnityAsset for UnityMeshFilter {
-    fn set_file_id(&mut self, file_id: u32) {
-        self.file_id = file_id;
-    }
+    // fn set_file_id(&mut self, file_id: u32) {
+    //     self.file_id = file_id;
+    // }
     fn name(&self) -> &'static str {
         "UnityMeshFilter"
     }
@@ -171,9 +184,9 @@ pub struct UnityMeshCollider {
 }
 
 impl UnityAsset for UnityMeshCollider {
-    fn set_file_id(&mut self, file_id: u32) {
-        self.file_id = file_id;
-    }
+    // fn set_file_id(&mut self, file_id: u32) {
+    //     self.file_id = file_id;
+    // }
     fn name(&self) -> &'static str {
         "UnityMeshCollider"
     }
@@ -193,11 +206,19 @@ pub struct UnityBoxCollider {
 }
 
 impl UnityAsset for UnityBoxCollider {
-    fn set_file_id(&mut self, file_id: u32) {
-        self.file_id = file_id;
-    }
+    // fn set_file_id(&mut self, file_id: u32) {
+    //     self.file_id = file_id;
+    // }
     fn name(&self) -> &'static str {
         "UnityBoxCollider"
+    }
+}
+impl UnityAsset for UnityLight {
+    // fn set_file_id(&mut self, file_id: u32) {
+    //     self.file_id = file_id;
+    // }
+    fn name(&self) -> &'static str {
+        "UnityLight"
     }
 }
 
@@ -207,9 +228,8 @@ impl UnityAsset for UnityBoxCollider {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UnityLight {
-    #[serde(rename = "m_ObjectHideFlags")]
-    pub object_hide_flags: i32,
-
+    // #[serde(rename = "m_ObjectHideFlags")]
+    // pub object_hide_flags: i32,
 
     #[serde(rename = "m_GameObject")]
     pub game_object: Component,
@@ -223,8 +243,8 @@ pub struct UnityLight {
     #[serde(rename = "m_Type")]
     pub light_type: i32,
 
-    #[serde(rename = "m_Shape")]
-    pub shape: i32,
+    // #[serde(rename = "m_Shape")]
+    // pub shape: i32,
 
     #[serde(rename = "m_Color")]
     pub color: Color,
@@ -235,53 +255,76 @@ pub struct UnityLight {
     #[serde(rename = "m_Range")]
     pub range: f32,
 
-    #[serde(rename = "m_SpotAngle")]
-    pub spot_angle: f32,
+    // #[serde(rename = "m_SpotAngle")]
+    // pub spot_angle: f32,
 
-    #[serde(rename = "m_InnerSpotAngle")]
-    pub inner_spot_angle: f32,
+    // #[serde(rename = "m_InnerSpotAngle")]
+    // pub inner_spot_angle: f32,
 
-    #[serde(rename = "m_CookieSize")]
-    pub cookie_size: f32,
+    // #[serde(rename = "m_CookieSize")]
+    // pub cookie_size: f32,
 
     // #[serde(rename = "m_Shadows")]
     // pub shadows: LightShadows,
 
-    #[serde(rename = "m_DrawHalo")]
-    pub draw_halo: i32,
+    // #[serde(rename = "m_DrawHalo")]
+    // pub draw_halo: i32,
 
-    #[serde(rename = "m_RenderingLayerMask")]
-    pub rendering_layer_mask: u32,
+    // #[serde(rename = "m_RenderingLayerMask")]
+    // pub rendering_layer_mask: u32,
 
-    #[serde(rename = "m_Lightmapping")]
-    pub lightmapping: i32,
+    // #[serde(rename = "m_Lightmapping")]
+    // pub lightmapping: i32,
 
-    #[serde(rename = "m_LightShadowCasterMode")]
-    pub light_shadow_caster_mode: i32,
-    
-    #[serde(rename = "m_BounceIntensity")]
-    pub bounce_intensity: f32,
+    // #[serde(rename = "m_LightShadowCasterMode")]
+    // pub light_shadow_caster_mode: i32,
 
-    #[serde(rename = "m_ColorTemperature")]
-    pub color_temperature: f32,
+    // #[serde(rename = "m_BounceIntensity")]
+    // pub bounce_intensity: f32,
 
-    #[serde(rename = "m_UseColorTemperature")]
-    pub use_color_temperature: i32,
+    // #[serde(rename = "m_ColorTemperature")]
+    // pub color_temperature: f32,
+
+    // #[serde(rename = "m_UseColorTemperature")]
+    // pub use_color_temperature: i32,
 
     // #[serde(rename = "m_BoundingSphereOverride")]
     // pub bounding_sphere_override: Vector4,
 
-    #[serde(rename = "m_UseBoundingSphereOverride")]
-    pub use_bounding_sphere_override: i32,
+    // #[serde(rename = "m_UseBoundingSphereOverride")]
+    // pub use_bounding_sphere_override: i32,
+    //
+    // #[serde(rename = "m_UseViewFrustumForShadowCasterCull")]
+    // pub use_view_frustum_for_shadow_caster_cull: i32,
 
-    #[serde(rename = "m_UseViewFrustumForShadowCasterCull")]
-    pub use_view_frustum_for_shadow_caster_cull: i32,
+    // #[serde(rename = "m_ShadowRadius")]
+    // pub shadow_radius: f32,
 
-    #[serde(rename = "m_ShadowRadius")]
-    pub shadow_radius: f32,
+    // #[serde(rename = "m_ShadowAngle")]
+    // pub shadow_angle: f32,
+}
 
-    #[serde(rename = "m_ShadowAngle")]
-    pub shadow_angle: f32,
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UnitySodaPointLight {
+    #[serde(rename = "m_GameObject")]
+    m_game_object: Component,
+    #[serde(rename = "lightRenderer")]
+    light_renderer: Component,
+    #[serde(rename = "lightColor")]
+    pub light_color: Color,
+    #[serde(rename = "enviromentTint")]
+    pub enviroment_tint: u8,
+}
+
+impl UnityAsset for UnitySodaPointLight {
+    // fn set_file_id(&mut self, file_id: u32) {
+    //     self.file_id = file_id;
+    // }
+    fn name(&self) -> &'static str {
+        "UnitySodaPointLight"
+    }
 }
 
 // 定义一个枚举来表示所有可能的类型
@@ -294,9 +337,10 @@ enum Asset {
     UnityMeshFilter(UnityMeshFilter),
     UnityMeshRenderer(UnityMeshRenderer),
     UnityBoxCollider(UnityBoxCollider),
+    UnityLight(UnityLight),
+    UnitySodaPointLight(UnitySodaPointLight),
     // 您可以添加其他可能的类型
 }
-
 
 impl UnityScene {
     pub fn new() -> Self {
@@ -308,10 +352,12 @@ impl UnityScene {
             mesh_renderers: HashMap::new(),
             box_colliders: HashMap::new(),
             index: HashMap::new(),
+            lights: HashMap::new(),
+            soda_lights: HashMap::new(),
         }
     }
     // 从str返回一个Unity场景对象，多个Object，解析.unity
-    pub fn from_str(&mut self, file_path: PathBuf) -> anyhow::Result<()> {
+    pub fn from_str(&mut self, file_path: PathBuf) -> anyhow::Result<Self> {
         let mut start: bool = false;
         let mut content = String::new();
         let mut old_component_id: u32 = 0;
@@ -320,7 +366,7 @@ impl UnityScene {
 
         let file = File::open(file_path)?;
         let mut deleted_ids:HashSet<u32> = HashSet::new();
-        
+
         // let mut mapping_objects: HashMap<i32, GameObject> = HashMap::new();
 
         let buffer = BufReader::new(file);
@@ -334,23 +380,25 @@ impl UnityScene {
                 // 为空表示首次数据
                 if !content.trim().is_empty() {
                     match serde_yaml::from_str::<Asset>(&content) {
+                        // m_IsActive需要处理连续隐藏的问题
                         Ok(Asset::UnityGameObject(mut unity_game_object)) => {
-                            if unity_game_object.m_is_active == 1 {
-                                unity_game_object.set_file_id(unity_game_object.file_id);
-                                unity_scene.game_object.insert(old_component_id, unity_game_object);
-                            } else {
-                                for conp in unity_game_object.m_component {
-                                    deleted_ids.insert(conp.component.file_id);
-                                }
-                                deleted_ids.insert(old_component_id);
-                            }
+                            // if unity_game_object.m_is_active == 1 {
+                            //     // unity_game_object.set_file_id(unity_game_object.file_id);
+                            //     unity_scene.game_object.insert(old_component_id, unity_game_object);
+                            // } else {
+                            //     for conp in unity_game_object.m_component {
+                            //         deleted_ids.insert(conp.component.file_id);
+                            //     }
+                            //     deleted_ids.insert(old_component_id);
+                            // }
+                            unity_scene.game_object.insert(old_component_id, unity_game_object);
                         }
                         Ok(Asset::UnityMeshCollider(mut mesh_collider)) => {
                             // 在已删除内就跳过
                             if deleted_ids.contains(&mesh_collider.m_game_object.file_id) {
                                 continue
                             }
-                            mesh_collider.set_file_id(old_component_id);
+                            // mesh_collider.set_file_id(old_component_id);
                             unity_scene.index.insert(old_component_id, mesh_collider.name().to_string());
                             unity_scene.mesh_colliders.insert(old_component_id, mesh_collider);
                         }
@@ -358,7 +406,7 @@ impl UnityScene {
                             if deleted_ids.contains(&unity_transform.m_game_object.file_id) {
                                 continue
                             }
-                            unity_transform.set_file_id(old_component_id);
+                            // unity_transform.set_file_id(old_component_id);
                             unity_scene.index.insert(old_component_id, unity_transform.name().to_string());
                             unity_scene.transforms.insert(old_component_id, unity_transform);
                         }
@@ -366,7 +414,7 @@ impl UnityScene {
                             if deleted_ids.contains(&old_component_id) {
                                 continue
                             }
-                            unity_mesh_filter.set_file_id(old_component_id);
+                            // unity_mesh_filter.set_file_id(old_component_id);
                             unity_scene.index.insert(old_component_id, unity_mesh_filter.name().to_string());
 
                             unity_scene.mesh_filters.insert(old_component_id, unity_mesh_filter);
@@ -377,7 +425,7 @@ impl UnityScene {
                                 continue
                             }
 
-                            unity_mesh_renderer.set_file_id(old_component_id);
+                            // unity_mesh_renderer.set_file_id(old_component_id);
                             unity_scene.index.insert(old_component_id, unity_mesh_renderer.name().to_string());
 
                             unity_scene.mesh_renderers.insert(old_component_id, unity_mesh_renderer);
@@ -387,10 +435,30 @@ impl UnityScene {
                                 continue
                             }
 
-                            unity_box_collider.set_file_id(old_component_id);
+                            // unity_box_collider.set_file_id(old_component_id);
                             unity_scene.index.insert(old_component_id, unity_box_collider.name().to_string());
 
                             unity_scene.box_colliders.insert(old_component_id, unity_box_collider);
+                        }
+                        Ok(Asset::UnityLight(mut light)) => {
+                            if deleted_ids.contains(&old_component_id) {
+                                continue
+                            }
+
+                            // unity_box_collider.set_file_id(old_component_id);
+                            unity_scene.index.insert(old_component_id, light.name().to_string());
+
+                            unity_scene.lights.insert(old_component_id, light);
+                        }
+                        Ok(Asset::UnitySodaPointLight(mut light)) => {
+                            if deleted_ids.contains(&old_component_id) {
+                                continue
+                            }
+                        
+                            // unity_box_collider.set_file_id(old_component_id);
+                            unity_scene.index.insert(old_component_id, light.name().to_string());
+                        
+                            unity_scene.soda_lights.insert(old_component_id, light);
                         }
                         _ => {}
                     }
@@ -421,12 +489,12 @@ impl UnityScene {
             content = content + &line;
             content.push('\n');
         }
-        
+
         // 清洗数据，包含light等都要清洗
 
-        fs::write("./save_zero.json", serde_json::to_string_pretty(&unity_scene).unwrap())?;
+        // fs::write("./save_j_lab_1.json", serde_json::to_string_pretty(&unity_scene).unwrap())?;
 
-        Ok(())
+        Ok(unity_scene)
     }
 }
 
@@ -466,7 +534,7 @@ impl UnityVertexAttribute {
 }
 
 impl From<UnityVertexAttribute> for u8 {
-    
+
     fn from(attr: UnityVertexAttribute) -> u8 {
         match attr {
             UnityVertexAttribute::Position => 0,
@@ -503,7 +571,7 @@ pub enum UnityVertexFormat {
 
 impl UnityVertexFormat {
     pub fn from_u8(value: u8) -> Self {
-        match value { 
+        match value {
             0 => UnityVertexFormat::Float32,
             1 => UnityVertexFormat::Float16,
             2 => UnityVertexFormat::UNorm8,
@@ -605,4 +673,63 @@ impl UnityVertexAttributeDescriptor {
             UnityVertexAttribute::BlendIndices => 9,
         }
     }
+}
+
+
+
+#[derive(Debug, Deserialize)]
+pub struct Channel{
+    pub stream: u8,
+    pub offset: u8,
+    pub format: u8,
+    pub dimension: u8,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct VertexDataRaw{
+    #[serde(rename(deserialize = "serializedVersion"))]
+    serialized_version: i8,
+    #[serde(rename(deserialize = "m_VertexCount"))]
+    pub vertex_count: usize,
+    #[serde(rename(deserialize = "m_Channels"))]
+    pub m_channels: Vec<Channel>,
+    #[serde(rename(deserialize = "m_DataSize"))]
+    pub data_size: f32,
+    #[serde(rename(deserialize = "_typelessdata"))]
+    pub _type_less_data: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MeshRaw{
+    #[serde(rename(deserialize = "m_Name"))]
+    pub m_name: String,
+    #[serde(rename(deserialize = "m_IndexBuffer"))]
+    pub index_buffer: String,
+    #[serde(rename(deserialize = "m_VertexData"))]
+    pub vertex_data: VertexDataRaw,
+    #[serde(rename(deserialize = "m_SubMeshes"))]
+    pub sub_mesh: Vec<SubMesh>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SubMesh {
+    // #[serde(rename(deserialize = "serializedVersion"))]
+    // pub serialized_version: u32,
+    #[serde(rename(deserialize = "firstByte"))]
+    pub first_byte: u32,
+    #[serde(rename(deserialize = "indexCount"))]
+    pub index_count: u32,
+    pub topology: u32,
+    #[serde(rename(deserialize = "baseVertex"))]
+    pub base_vertex: u32,
+    #[serde(rename(deserialize = "firstVertex"))]
+    pub first_vertex: u32,
+    #[serde(rename(deserialize = "vertexCount"))]
+    pub vertex_count: u32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MeshAsset{
+    #[serde(rename(deserialize = "Mesh"))]
+    pub mesh: MeshRaw
 }

@@ -32,7 +32,7 @@ pub fn parse_unity_index_buffer(hex_string: &str) -> Vec<u32> {
 }
 
 pub fn get_background_color() -> wgpu::Color {
-    #[cfg(target="wasm32")]
+    #[cfg(target_arch="wasm32")]
     {
         wgpu::Color{
             r: 1.0,
@@ -41,8 +41,8 @@ pub fn get_background_color() -> wgpu::Color {
             a: 1.0,
         }
     }
-    
-    #[cfg(not(target="wasm32"))]
+
+    #[cfg(not(target_arch = "wasm32"))]
     {
         dotenv::dotenv().ok();
         wgpu::Color{
@@ -55,11 +55,11 @@ pub fn get_background_color() -> wgpu::Color {
 }
 
 pub fn get_block_mesh() -> bool{
-    #[cfg(not(target="wasm32"))]
+    #[cfg(not(target_arch = "wasm32"))]
     {
         dotenv::dotenv().ok();
         env::var("BLOCK_MESH".to_string()).unwrap_or("false".to_string()).parse().expect("REASON")
     }
-    #[cfg(target="wasm32")]
+    #[cfg(target_arch="wasm32")]
     false
 }

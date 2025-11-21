@@ -10,6 +10,9 @@ pub struct CameraController {
     is_backward_pressed: bool,
     is_left_pressed: bool,
     is_right_pressed: bool,
+    // 向上
+    is_space_pressed: bool,
+    is_shift_left_pressed: bool,
 }
 
 impl CameraController {
@@ -21,11 +24,12 @@ impl CameraController {
             is_backward_pressed: false,
             is_left_pressed: false,
             is_right_pressed: false,
+            is_space_pressed: false,
+            is_shift_left_pressed: false,
         }
     }
 
     pub fn handle_key(&mut self, keycode: KeyCode, is_pressed: bool) -> bool {
-
         match keycode {
             KeyCode::KeyW | KeyCode::ArrowUp => {
                 self.is_forward_pressed = is_pressed;
@@ -43,39 +47,58 @@ impl CameraController {
                 self.is_right_pressed = is_pressed;
                 true
             }
-            _ => false
+            KeyCode::Space=> {
+                self.is_space_pressed = is_pressed;
+                true
+            }
+            KeyCode::ShiftLeft=> {
+                self.is_shift_left_pressed = is_pressed;
+                true
+            }
+            _ => false,
         }
     }
 
-    pub fn update_camera(&mut self, eye: &mut Point3<f32>,
-                         target: Point3<f32>,
-                         up: Vector3<f32>,) {
+    pub fn update_camera(&mut self, eye: &mut Point3<f32>, target: &mut Point3<f32>, up: Vector3<f32>) {
         use cgmath::InnerSpace;
 
-        let forward = target - *eye;
-        let forward_norm = forward.normalize();// 归一化
-        let forward_mag = forward_norm.magnitude();// 分量
+        let forward = *target - *eye;
+        let forward_norm = forward.normalize(); // 归一化
+        // let forward_mag = forward_norm.magnitude(); // 分量
 
+        let speed = if self.is_shift_left_pressed { 
+            self.speed * 1.5
+        } else {
+            self.speed
+        };
         // 向前移动
-        if self.is_forward_pressed && forward_mag > self.speed {
-            *eye += forward_norm * self.speed;
+        if self.is_forward_pressed
+        // && forward_mag > self.speed
+        {
+            *eye += forward_norm * speed;
+            *target += forward_norm * speed;
         }
         if self.is_backward_pressed {
-            *eye -= forward_norm * self.speed;
+            *eye -= forward_norm * speed;
+            *target -= forward_norm * speed;
+        }
+        if self.is_space_pressed {
+            eye.y += speed;
+            target.y += speed;
         }
 
-        let right = forward_norm.cross(up);// 得到向右的向量
+        let right = forward_norm.cross(up); // 得到向右的向量
 
-        let forward = target - *eye;
+        let forward = *target - *eye;
         let forward_mag = forward.magnitude();
 
         if self.is_left_pressed {
             // 需要增加向前+向左的向量
-            *eye = target - (forward - right * self.speed).normalize() * forward_mag;
+            *eye = *target - (forward - right * speed).normalize() * forward_mag;
         }
         if self.is_right_pressed {
             // 每次操作变量都是基于target进行向量操作
-            *eye = target - (forward + right *self.speed).normalize() * forward_mag;
+            *eye = *target - (forward + right * speed).normalize() * forward_mag;
         }
     }
 }
@@ -144,20 +167,23 @@ impl Camera {
             }],
         });
 
-        let controller = CameraController::new(0.1, 0.5);
+        let controller = CameraController::new(0.5, 0.5);
 
+        // 288.4272,
+        // 10.784296,
+        // 30.982054,
         Self {
             eye: Point3 {
-                x: 1.0,
-                y: 1.0,
-                z: 1.0,
+                x: 288.4272,
+                y: 10.784296,
+                z: 30.982054,
             },
-            target: Point3::new(0.0, 0.0, 0.0),
+            target: Point3::new(290.4272, 11.784296, 28.982054),
             up: Vector3::unit_y(),
             fov: 45.0,
             aspect,
             near: 0.01,
-            far: 100.0,
+            far: 1000.0,
 
             bind_group_layout,
             bind_group,
@@ -183,13 +209,19 @@ impl Camera {
     }
 
     pub fn update(&mut self, queue: &wgpu::Queue, delta_time: f32) {
-        self.controller.update_camera(&mut self.eye, self.target, self.up);
-        let camera_uniforms = CameraUniforms{
-            view_proj: self.get_projection_matrix().into(),  // 使用投影矩阵 * 视图矩阵
+        self.controller
+            .update_camera(&mut self.eye, &mut self.target, self.up);
+        let camera_uniforms = CameraUniforms {
+            view_proj: self.get_projection_matrix().into(), // 使用投影矩阵 * 视图矩阵
             view_position: self.eye.into(),
             _padding: 0.0,
         };
+        // println!("camera view_position: {:#?}", self.eye);
 
-        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::bytes_of(&camera_uniforms));
+        queue.write_buffer(
+            &self.uniform_buffer,
+            0,
+            bytemuck::bytes_of(&camera_uniforms),
+        );
     }
 }

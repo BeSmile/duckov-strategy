@@ -1,8 +1,11 @@
 use std::collections::HashMap;
+use std::sync::Arc;
+use cfg_if::cfg_if;
+use log::info;
 use serde::{Deserialize, Serialize};
-use wgpu::{Device, FilterMode, Queue, TextureView};
-use crate::resource::load_binary;
-use crate::unity::{Color, UnityReference};
+use wgpu::{Device, Queue, TextureView};
+use crate::resource::{load_binary, ResourceManager};
+use crate::unity::{Color, TextureReference, UnityReference};
 use crate::utils::get_block_mesh;
 
 // 由 texture view 采样 组成
@@ -17,10 +20,24 @@ impl Texture {
     pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
     pub fn create_depth_texture(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration, label: &str) -> Self {
-        let size = wgpu::Extent3d { // 2.
-            width: config.width.max(1),
-            height: config.height.max(1),
-            depth_or_array_layers: 1,
+        info!("Creating depth texture config: {:?}", config);
+        
+        let size = {
+            cfg_if! {
+                if #[cfg(target_arch = "wasm32")] {
+                    wgpu::Extent3d { // 2.
+                        width: config.width,
+                        height: config.height,
+                        depth_or_array_layers: 1,
+                    }
+                } else {
+                    wgpu::Extent3d { // 2.
+                        width: config.width.max(1),
+                        height: config.height.max(1),
+                        depth_or_array_layers: 1,
+                    }
+                }
+            }
         };
         let desc = wgpu::TextureDescriptor {
             label: Some(label),
@@ -55,7 +72,7 @@ impl Texture {
     }
 
     // 创建一个白色的材质
-    fn create_dummy_white(device: &Device, queue: &Queue) -> Texture {
+    pub fn create_dummy_white(device: &Device, queue: &Queue) -> Texture {
         use wgpu::util::DeviceExt;
 
         let texture = device.create_texture_with_data(
@@ -231,10 +248,10 @@ impl MaterialLayoutBuilder {
 #[derive(Debug)]
 pub struct Material{
     pub name: String,
-    pub albedo_texture: Option<Texture>,      // _MainTex
-    pub normal_texture: Option<Texture>,      // _BumpMap
-    pub metallic_texture: Option<Texture>,    // _MetallicGlossMap
-    pub ao_texture: Option<Texture>,          // _OcclusionMap
+    pub albedo_texture: Option<Arc<Texture>>,      // _MainTex
+    pub normal_texture: Option<Arc<Texture>>,      // _BumpMap
+    pub metallic_texture: Option<Arc<Texture>>,    // _MetallicGlossMap
+    pub ao_texture: Option<Arc<Texture>>,          // _OcclusionMap
 
     metallic: f32,                // _Metallic
     roughness: f32,               // 1.0 - _Glossiness
@@ -247,7 +264,7 @@ pub struct Material{
 }
 
 impl Material{
-    pub async fn from_unity_bytes(bytes: &[u8], device: &Device, queue: &Queue) -> anyhow::Result<Self>{
+    pub async fn from_unity_bytes(bytes: &[u8], device: &Device, queue: &Queue, resource_manager: &mut ResourceManager) -> anyhow::Result<Self>{
         let content = std::str::from_utf8(bytes)?;
         let mat = serde_yaml::from_str::<MatYaml>(content)?;
         let unity_material = mat.material;
@@ -273,21 +290,21 @@ impl Material{
             ..Default::default()
         });
 
-        let white_texture = Texture::create_dummy_white(device, queue);
-
         let mut builder = MaterialLayoutBuilder::new();
 
         let mut entries = Vec::new();
 
+        albedo_texture = Some(resource_manager.get_white_texture());
+        
         if let (Some(main_tex), false) = (tex_envs.main_tex, block_mesh) {
-            println!("main_tex: {:?}", main_tex);
-            // 临时设置主贴图
-            let texture_bytes = load_binary("Car_15_AlbedoTransparency_1 1.png").await?;
-            let texture = Texture::from_bytes(device, queue, texture_bytes, "Car_15_AlbedoTransparency_1 1.png")?;
-
-            albedo_texture = Some(texture);
-        } else {
-            albedo_texture = Some(white_texture.clone());
+            if let Some(guid) = main_tex.texture.guid {
+                println!("main_tex: {:?}", guid);
+                // let file_path = resource_manager.get_guid_file(&guid).unwrap();
+                // 临时设置主贴图
+                // let texture_bytes = load_binary(file_path).await?;
+                let texture = resource_manager.load_texture(device, queue, &guid).await?;
+                albedo_texture = Some(texture);
+            }
         }
 
         entries.push(wgpu::BindGroupEntry{
@@ -296,15 +313,13 @@ impl Material{
         });
         builder.add_texture();
 
-        if let (Some(normal_map), false) = (tex_envs.normal_map, block_mesh) {
-            println!("normal_map: {:?}", normal_map);
-            // 临时设置主贴图
-            let texture_bytes = load_binary("T_ElectricControlBox_MMOR.png").await?;
+        normal_texture = Some(resource_manager.get_white_texture());
 
-            let texture = Texture::from_bytes(device, queue, texture_bytes, "T_ElectricControlBox_MMOR.png")?;
-            normal_texture = Some(texture);
-        } else {
-            normal_texture = Some(white_texture.clone());
+        if let (Some(normal_map), false) = (tex_envs.normal_map, block_mesh) {
+            if let Some(guid) = normal_map.texture.guid {
+                let texture = resource_manager.load_texture(device, queue, &guid).await?;
+                normal_texture = Some(texture);
+            }
         }
 
         entries.push(wgpu::BindGroupEntry{
@@ -313,28 +328,29 @@ impl Material{
         });
         builder.add_texture();
 
+        metallic_texture = Some(resource_manager.get_white_texture());
+
         // 暂时创建白色的
         if let (Some(metallic_smoothness), false) = (tex_envs.metallic_smoothness, block_mesh) {
-            let texture = Texture::create_dummy_white(&device, &queue);
-            // metallic_texture = Some(texture);
-            metallic_texture = Some(white_texture.clone());
-
-        } else {
-            metallic_texture = Some(white_texture.clone());
+            if let Some(guid) = metallic_smoothness.texture.guid {
+                let texture = resource_manager.load_texture(device, queue, &guid).await?;
+                metallic_texture = Some(texture);
+            }
         }
+        
         entries.push(wgpu::BindGroupEntry{
             binding: builder.next_binding,
             resource: wgpu::BindingResource::TextureView(&metallic_texture.as_ref().unwrap().view),
         });
         builder.add_texture();
 
-        if let (Some(m_texture), false) = (tex_envs.m_texture , block_mesh){
-            let texture = Texture::create_dummy_white(&device, &queue);
-            // ao_texture = Some(texture);
-            ao_texture = Some(white_texture.clone());
+        ao_texture = Some(resource_manager.get_white_texture());
 
-        } else {
-            ao_texture = Some(white_texture.clone());
+        if let (Some(m_texture), false) = (tex_envs.m_texture , block_mesh){
+            if let Some(guid) = m_texture.texture.guid {
+                let texture = resource_manager.load_texture(device, queue, &guid).await?;
+                ao_texture = Some(texture);
+            }
         }
 
         entries.push(wgpu::BindGroupEntry{
@@ -354,7 +370,6 @@ impl Material{
             entries: &builder.entries,
         });
 
-        println!("bind_group_layout:{:?}", &builder.entries);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor{
             label: Some(&format!("Material bind_group : {}", unity_material.name)),
             layout: &bind_group_layout,
@@ -380,9 +395,9 @@ impl Material{
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TextureProperty {
     #[serde(rename = "m_Texture")]
-    pub texture: UnityReference,
+    pub texture: TextureReference,
     #[serde(rename = "m_Scale")]
-    pub scale: cgmath::Vector2<u8>,
+    pub scale: cgmath::Vector2<f32>,
     #[serde(rename = "m_Offset")]
     pub offset: cgmath::Vector2<u8>,
 }
@@ -402,7 +417,9 @@ pub struct TexEnvs {
 #[derive(Debug, Deserialize)]
 pub struct Colors{
     #[serde(rename = "_MaskTint")]
-    pub mask_int: Color,
+    pub mask_int: Option<Color>,
+    #[serde(rename = "_BaseColor")]
+    pub base_color: Option<Color>,
 }
 
 #[derive(Debug, Deserialize)]

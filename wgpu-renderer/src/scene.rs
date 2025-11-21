@@ -1,17 +1,24 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Instant;
-use cgmath::{Matrix4, Quaternion, SquareMatrix, Vector3, Vector4};
+
+use cgmath::{Matrix4, Rotation3, Vector3, Vector4};
 use wgpu::{Device, Queue, SurfaceConfiguration};
 
 use crate::camera::Camera;
 use crate::entity::{Entity, Mesh, Model, Transform, TransformSystem};
 use crate::light::{DirectionalLight, LightManager, PointLight};
 use crate::materials::{Material, Texture};
-use crate::resource::load_binary;
+use crate::resource::{ResourceManager, load_binary};
 use crate::utils::get_background_color;
 
 pub type PipelineId = String;
+
+use crate::unity::{Component, UnityMeshFilter, UnityMeshRenderer, UnityScene};
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
+#[cfg(target_arch = "wasm32")]
+use web_time::Instant;
 
 pub struct PipelineManager {
     pipelines: HashMap<PipelineId, wgpu::RenderPipeline>,
@@ -20,55 +27,10 @@ pub struct PipelineManager {
 
 impl PipelineManager {
     pub fn new() -> Self {
-        Self{
+        Self {
             pipelines: Default::default(),
             current_pipeline: None,
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct ResourceManager {
-    materials: HashMap<Entity, Arc<Material>>,
-    meshes: HashMap<Entity, Arc<Mesh>>,
-}
-
-impl ResourceManager {
-    pub fn new() -> Self {
-        Self{
-            materials: Default::default(),
-            meshes: Default::default(),
-        }
-    }
-
-    pub async fn load_mesh(&mut self, bytes: &[u8], entity: Entity, device: &Device, scene: &Scene, material: &Material, config: &SurfaceConfiguration) -> anyhow::Result<u32> {
-        let mesh = Mesh::from_unity_data(&bytes, device, scene, material, config).await?;// 车轮子
-        // let id = self.meshes.len() as u32;
-        self.meshes.insert(entity, Arc::new(mesh));
-
-        Ok(entity.id())
-    }
-
-    // 加载mat资源材质包，暂时使用实体的Id
-    pub async fn load_material(&mut self, entity: Entity, device: &Device, queue: &Queue) -> anyhow::Result<u32> {
-        let mat_bytes = load_binary("MAT_ElectricControlBox.mat").await.map_err(|e| {
-            println!("Load mat asset error: {:?}", e);
-            e
-        })?;
-
-        // 后续处理多布局layout的问题, 可能共用mesh, 会有优化部分, 先使用entity_id
-        let material = Material::from_unity_bytes(&mat_bytes, &device, &queue).await?;
-        self.materials.insert(entity, Arc::new(material));
-
-        Ok(entity.id())
-    }
-
-    pub fn get_material(&self, entity: Entity) -> Option<&Arc<Material>> {
-        self.materials.get(&entity)
-    }
-
-    pub fn get_mesh(&self, entity: Entity) -> Option<&Arc<Mesh>> {
-        self.meshes.get(&entity)
     }
 }
 
@@ -80,7 +42,8 @@ pub struct Scene {
     pub ambient_light: [f32; 3],
     pub background_color: wgpu::Color,
 
-    pub entities: Vec<Entity>,// 存档所有的实体类key
+    pub entities: Vec<Entity>, // 存档所有的实体类key
+    entity_display_map: HashMap<Entity, bool>,
 
     pub scene_bind_group_layout: wgpu::BindGroupLayout,
     scene_uniform_buffer: wgpu::Buffer,
@@ -88,7 +51,6 @@ pub struct Scene {
 
     pub elapsed_time: f32,
     pub pipeline_manager: PipelineManager,
-    pub depth_texture: Texture,
 
     // 存储所有的transform变换数据
     pub transform_system: TransformSystem,
@@ -104,31 +66,32 @@ pub struct Scene {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct SceneUniforms { // 场景的uniforms 与gpu 通信
+pub struct SceneUniforms {
+    // 场景的uniforms 与gpu 通信
     pub ambient_light: [f32; 3],
-    pub ambient_intensity: f32,  // 替代 _padding1
+    pub ambient_intensity: f32, // 替代 _padding1
     pub fog_color: [f32; 3],
     pub fog_density: f32,
 }
 
 impl Scene {
-    pub fn new(device: &Device, config: &wgpu::SurfaceConfiguration) -> Scene {
+    pub fn new(device: &Device, config: &SurfaceConfiguration, max_entities: usize) -> Scene {
         let light_manager = LightManager::new(device);
         let camera = Camera::new(device, config.width as f32 / config.height as f32);
 
-        let ambient_light = [0.9;3];
+        let ambient_light = [0.9; 3];
 
-        let scene_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor{
+        let scene_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Scene Uniform Buffer"),
-            size: std::mem::size_of::<SceneUniforms>() as wgpu::BufferAddress,
+            size: size_of::<SceneUniforms>() as wgpu::BufferAddress,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
-        let scene_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Scene Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry{
+        let scene_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Scene Bind Group Layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
@@ -137,75 +100,67 @@ impl Scene {
                         min_binding_size: None,
                     },
                     count: None,
-                }
-            ],
-        });
+                }],
+            });
 
-        let scene_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor{
+        let scene_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Scene Bind Group"),
             layout: &scene_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry{
-                    binding: 0,
-                    resource: scene_uniform_buffer.as_entire_binding(),
-                }
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: scene_uniform_buffer.as_entire_binding(),
+            }],
         });
 
+        let alignment = device.limits().min_uniform_buffer_offset_alignment as u64;
+        println!("Real alignment required: {}", alignment);  // 在 macOS 上打印看看
         // ⭐ 一次性更新所有 transform 到 buffer
-        let max_entities = 1000;
-        let aligned_size = Self::aligned_uniform_size(
-            size_of::<Matrix4<f32>>() as u64
-        );
+        // let max_entities = 100000;// 数据连续： 优化部分，transform 高频变化数据，直接通过offset进行数据的写入以及更新，利用entity的is_dirty进行管理是否更新
+        let aligned_size = Self::aligned_uniform_size(size_of::<Matrix4<f32>>() as u64);
 
-        let transforms_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor{
+        println!("max_entities: {}, aligned_size: {}", max_entities, aligned_size * max_entities as u64);
+        let transforms_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Transforms Buffer"),
-            size: aligned_size * max_entities,
+            size: aligned_size * max_entities as u64,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
-        let transform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
-            label: Some("Transform Bind Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry{
+        let transform_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Transform Bind Layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::VERTEX,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: true,// 动态偏移
+                        has_dynamic_offset: true, // 动态偏移
                         min_binding_size: Some(
-                            std::num::NonZeroU64::new(
-                                std::mem::size_of::<Matrix4<f32>>() as u64
-                            ).unwrap()
+                            std::num::NonZeroU64::new(std::mem::size_of::<Matrix4<f32>>() as u64)
+                                .unwrap(),
                         ),
                     },
                     count: None,
-                }
-            ],
-        });
+                }],
+            });
 
-        let transform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor{
+        let transform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Transform Bind Group"),
             layout: &transform_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry{
-                    binding: 0,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding{
-                        buffer: &transforms_uniform_buffer,
-                        offset: 0,
-                        size: Some(
-                            std::num::NonZeroU64::new(
-                                std::mem::size_of::<Matrix4<f32>>() as u64
-                            ).unwrap()
-                        ),
-                    }),
-                }
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                    buffer: &transforms_uniform_buffer,
+                    offset: 0,
+                    size: Some(
+                        std::num::NonZeroU64::new(std::mem::size_of::<Matrix4<f32>>() as u64)
+                            .unwrap(),
+                    ),
+                }),
+            }],
         });
 
-
-        Scene{
+        Scene {
             light_manager,
             camera,
             ambient_light,
@@ -218,12 +173,12 @@ impl Scene {
             elapsed_time: Instant::now().elapsed().as_secs_f32(),
             pipeline_manager: PipelineManager::new(),
             // materials: HashMap::new(),
-            depth_texture: Texture::create_depth_texture(device,config, "depth_texture"),
             transform_system: TransformSystem::new(),
             transform_bind_group,
             transform_bind_group_layout,
             transforms_uniform_buffer,
             entity_offsets: HashMap::new(),
+            entity_display_map: HashMap::new(),
         }
     }
 
@@ -233,76 +188,138 @@ impl Scene {
         (size + alignment - 1) & !(alignment - 1)
     }
 
-    pub async fn loading_scene(device: &Device, queue: &Queue, scene: &mut Scene, resource_manager: &mut ResourceManager, config: &wgpu::SurfaceConfiguration) -> anyhow::Result<()> {
-        // 加载车身体
-        let bytes = load_binary("Car_15.asset").await.map_err(|e| {
-            println!("SM_Table_01_2.asset: {:?}", e);
-            e
-        })?;
-        let wheel_bytes_1 = load_binary("Car_15_Wheel_1.asset").await.map_err(|e| {
-            println!("SM_Table_01_2.asset: {:?}", e);
-            e
-        })?;
-        let wheel_bytes_2 = load_binary("Car_15_Wheel_2.asset").await.map_err(|e| {
-            println!("SM_Table_01_2.asset: {:?}", e);
-            e
-        })?;
-        let wheel_bytes_3 = load_binary("Car_15_Wheel_3.asset").await.map_err(|e| {
-            println!("SM_Table_01_2.asset: {:?}", e);
-            e
-        })?;
-        // Mat_Car_06_1 车轮胎材质球
-        // Car_15_Wheel_1,2,3.asset mesh
+    pub async fn loading_scene(
+        device: &Device,
+        queue: &Queue,
+        scene: &mut Scene,
+        unity_scene: &mut UnityScene,
+        resource_manager: &mut ResourceManager,
+        config: &SurfaceConfiguration,
+    ) -> anyhow::Result<()> {
 
-        let entity = Entity::new(122);
-        let entity_wheel_1 = Entity::new(123);
-        let entity_wheel_2 = Entity::new(124);
-        let entity_wheel_3 = Entity::new(125);
+        let indexs = &unity_scene.index; // 查看类型
+        let objects = &unity_scene.game_object;
+        let transforms = &unity_scene.transforms;
+        let mesh_renders = &unity_scene.mesh_renderers;
+        let mesh_filters = &unity_scene.mesh_filters;
+        let test_id = 0;
+        for (entity_id, game_object) in objects {
+            // 查看挂载的transform
+            let entity = Entity::new(*entity_id);
+            if game_object.m_is_active != 1 {
+                scene.hidden_entity(entity);
+            }
 
-        // 实体类和模型的区分， 一个实体类可以是同一个车模型，但是贴图不一致，以及transform的变换
-        // let asset = Mesh::from_unity_data(&bytes, entity , device, queue, scene, config).await?;// 车主体资源
-        let m_id = resource_manager.load_material(entity, device, queue).await?;
+            if *entity_id == test_id {
+                println!("entity: {:?}", entity);
+            }
+            let mut is_light = false;
+            let mut unity_mesh_render: Option<&UnityMeshRenderer> = None;
+            let mut unity_mesh_filter: Option<&UnityMeshFilter> = None;
 
-        let m_id = resource_manager.load_material(entity_wheel_1, device, queue).await?;
-        let m_id = resource_manager.load_material(entity_wheel_2, device, queue).await?;
-        let m_id = resource_manager.load_material(entity_wheel_3, device, queue).await?;
+            let mut local_transform = Transform::new();
+            
+            for m_component in &game_object.m_component {
+                let file_id = m_component.component.file_id.clone();
+                let s_type = indexs.get(&file_id);
+                match s_type {
+                    // transform管理
+                    Some(s) if s.as_str() == "UnityTransform" => {
+                        let transform = transforms.get(&file_id);
+                        let op = transform.as_deref();
+                        
+                        let Some(unity_transform) = op else {
+                            continue;
+                        };
+                        if *entity_id == test_id {
+                            println!("{}: transform: {:?}", *entity_id, op);
+                        }
+                        // 通过transform查找children上的transform数据，transform对应;
+                        local_transform.set_position(&unity_transform.m_local_position);
+                        let unity_rot = &unity_transform.m_local_rotation;
+                        local_transform.set_rotation(cgmath::Quaternion::new(
+                            -unity_rot.w,  // w 取负
+                            unity_rot.x,   // x 保持
+                            unity_rot.y,   // y 保持
+                            -unity_rot.z,  // z 取负
+                        ));
+                        let unity_scale = &unity_transform.m_local_scale;
+                        local_transform.set_scale(Vector3::new(
+                            unity_scale.x,
+                            unity_scale.y,
+                            unity_scale.z,
+                        ));
 
-        // let mut resource_manager = &scene.resource_manager;
-        let material = {
-            println!("M_Table_01_2.asset: {:?}", m_id);
-            Arc::clone(resource_manager.get_material(entity).unwrap())
-        };
+                        // 根据children设置父子关系
+                        // for m_child in &unity_transform.m_children {
+                        //     scene.transform_system.set_parent(Entity::new(file_id), Entity::new(m_child.file_id));
+                        // }
+                        if let Some(m) = &unity_transform.m_father {
+                            let parent_transform = transforms.get(&m.file_id);
 
-        resource_manager.load_mesh(&bytes, entity, device, scene, &material, config).await?;
-        resource_manager.load_mesh(&wheel_bytes_1, entity_wheel_1, device, scene, &*material, config).await?;// 车轮子
-        resource_manager.load_mesh(&wheel_bytes_2, entity_wheel_2, device, scene, &*material, config).await?;// 车轮子
-        resource_manager.load_mesh(&wheel_bytes_3, entity_wheel_3, device, scene, &*material, config).await?;// 车轮子
+                            if let Some(transform) = parent_transform {
+                                scene.transform_system.set_parent(
+                                    Entity::new(transform.m_game_object.file_id),
+                                    Entity::new(unity_transform.m_game_object.file_id),
+                                );
 
-        let car_bu = 0;
 
-        let mut car_transform = Transform::new();
-        // car_transform.set_position(Vector3::from([-86.82, 169.88, -0.48]));
-        car_transform.set_position(Vector3::from([1.0, 1.0, 0.0]));
+                            }
+                        }
+                        scene.entities.push(entity);
+                    }
+                    Some(s) if s.as_str() == "UnityMeshRenderer" => {
+                        unity_mesh_render = mesh_renders.get(&file_id);
+                    }
+                    // 顶点数据
+                    Some(s) if s.as_str() == "UnityMeshFilter" => {
+                        unity_mesh_filter = mesh_filters.get(&file_id);
+                    }
+                    Some(s) if s.as_str() == "UnityLight" || s.as_str() == "UnitySodaPointLight" => {
+                        is_light = true;
+                    }
+                    _ => {}
+                }
+                // println!("loading unity 顶点数据: {:?}", unity_mesh_filter);
+            }
+            if *entity_id == test_id {
+                println!("entity: {:?} End Ground", entity);
+            }
+            // 光照暂时不渲染
+            if is_light { 
+                continue;
+            }
+            
+            scene.add_entity(entity, local_transform);
+            
+            let Some(mesh_filter) = unity_mesh_filter else { continue };
+            let Some(mesh_mesh_reference) =  unity_mesh_render else {
+                continue
+            };
+            // 材质球
+            let Some(mesh_render) = mesh_mesh_reference.m_children.get(0) else { continue  };
+            // println!("loading unity 材质球 {:?}", mesh_render);
 
-        // 创建车轮子entity
-        let mut entity_transform_wheel_1 = Transform::new();
-        entity_transform_wheel_1.set_position(Vector3::from([0.0, 0.5279994, -1.712251]));
+            resource_manager
+                .load_material(entity, &mesh_render.guid, device, queue)
+                .await?;
 
-        let mut entity_transform_wheel_2 = Transform::new();
-        entity_transform_wheel_2.set_position(Vector3::from([0.0, 0.5279994, 2.337084]));
-
-        let mut entity_transform_wheel_3 = Transform::new();
-        entity_transform_wheel_3.set_position(Vector3::from([0.0, 0.5279994, 3.448621]));
-
-        scene.transform_system.set_parent(entity, entity_wheel_1);
-        scene.transform_system.set_parent(entity, entity_wheel_2);
-        scene.transform_system.set_parent(entity, entity_wheel_3);
+            let material = {
+                Arc::clone(resource_manager.get_material(entity).unwrap())
+            };
+            
+            resource_manager
+                .load_mesh(
+                    &mesh_filter.m_mesh.guid,
+                    entity,
+                    device,
+                    scene,
+                    &material,
+                    config,
+                )
+                .await?;
+        }
         
-        scene.add_entity(entity, car_transform);
-        scene.add_entity(entity_wheel_1, entity_transform_wheel_1);
-        scene.add_entity(entity_wheel_2, entity_transform_wheel_2);
-        scene.add_entity(entity_wheel_3, entity_transform_wheel_3);
-
         scene.transform_system.update();
 
         Ok(())
@@ -312,14 +329,20 @@ impl Scene {
         self.entities.push(entity);
         self.transform_system.add_transform(entity, transform);
     }
+    
+    pub fn hidden_entity(&mut self, entity: Entity) {
+        self.entity_display_map.insert(entity, false);
+    }
 
     pub fn add_pipelines(&mut self, pipeline_id: PipelineId, pipeline: wgpu::RenderPipeline) {
-        self.pipeline_manager.pipelines.insert(pipeline_id, pipeline);
+        self.pipeline_manager
+            .pipelines
+            .insert(pipeline_id, pipeline);
     }
 
     // 初始化设置环境光等
     pub fn setup(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
-        self.light_manager.add_point_light(PointLight{
+        self.light_manager.add_point_light(PointLight {
             position: [5.0, 5.0, 5.0],
             _padding1: 0.0,
             color: [1.0, 0.8, 0.6],
@@ -327,7 +350,7 @@ impl Scene {
             radius: 15.0,
             _padding2: [0.0; 3],
         });
-        self.light_manager.add_directional_light(DirectionalLight{
+        self.light_manager.add_directional_light(DirectionalLight {
             direction: [-0.3, -1.0, -0.5],
             _padding1: 0.0,
             color: [1.0, 1.0, 0.95],
@@ -344,7 +367,7 @@ impl Scene {
         self.light_manager.update_buffers(queue);
 
         // 更新场景数据 比如环境光, fog颜色
-        let scene_uniforms = SceneUniforms{
+        let scene_uniforms = SceneUniforms {
             ambient_light: self.ambient_light,
             ambient_intensity: 0.2,
             fog_color: [0.5, 0.6, 0.7],
@@ -352,13 +375,17 @@ impl Scene {
         };
 
         // scene_uniform_buffer 理解是一个管道buffer
-        queue.write_buffer(&self.scene_uniform_buffer, 0, bytemuck::bytes_of(&scene_uniforms));
+        queue.write_buffer(
+            &self.scene_uniform_buffer,
+            0,
+            bytemuck::bytes_of(&scene_uniforms),
+        );
 
         // ⭐ 一次性更新所有 transform 到 buffer
-        let aligned_size = Self::aligned_uniform_size(
-            std::mem::size_of::<Matrix4<f32>>() as u64
-        ) as u32;
+        let aligned_size =
+            Self::aligned_uniform_size(std::mem::size_of::<Matrix4<f32>>() as u64) as u32;
 
+        // 根据索引检查entity的is_dirty数据进行写入
         for (index, &entity) in self.entities.iter().enumerate() {
             if let Some(matrix) = self.transform_system.get_world_matrix(entity) {
                 let matrix_array: [[f32; 4]; 4] = matrix.into();
@@ -370,7 +397,7 @@ impl Scene {
                 queue.write_buffer(
                     &self.transforms_uniform_buffer,
                     offset as u64,
-                    bytemuck::cast_slice(&[matrix_array])
+                    bytemuck::cast_slice(&[matrix_array]),
                 );
             }
         }
@@ -404,16 +431,25 @@ impl Scene {
     //     }
     // }
 
-    pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, resource_manager: &'a ResourceManager) {
+    pub fn render<'a>(
+        &'a self,
+        render_pass: &mut wgpu::RenderPass<'a>,
+        resource_manager: &'a ResourceManager,
+    ) {
         // println!("resource_manager: {:#?}", &resource_manager);
         // 渲染实体
         for entity in &self.entities {
+            let hidden = self.entity_display_map.get(entity).unwrap_or(&false);
+            // 隐藏属性不展示
+            if *hidden == true { 
+                continue;
+            }
+            
             // 从资源管理器获取 mesh
             let Some(mesh) = resource_manager.get_mesh(*entity) else {
-                println!("Entity does not exist for {:?}", entity);
+                // println!("Mesh does not exist for {:?}", entity);
                 continue; // 没有 mesh 就跳过
             };
-
 
             // 从资源管理器获取 material
             let Some(material) = resource_manager.get_material(*entity) else {
@@ -426,7 +462,7 @@ impl Scene {
             //     continue;
             // };
             let Some(&offset) = self.entity_offsets.get(&entity) else {
-                continue
+                continue;
             };
 
             // 绑定模型特定的资源并渲染

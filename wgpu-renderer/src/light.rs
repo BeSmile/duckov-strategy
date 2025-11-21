@@ -68,6 +68,9 @@ impl LightManager {
         let point_light_buffer = device.create_buffer(&wgpu::BufferDescriptor{
             label: Some("point_lights"),
             size: std::mem::size_of::<PointLight>() as u64,
+            #[cfg(target_arch = "wasm32")]
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,  // UNIFORM wasm中不支持STORAGE
+            #[cfg(not(target_arch = "wasm32"))]
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -75,6 +78,9 @@ impl LightManager {
         let directional_light_buffer = device.create_buffer(&wgpu::BufferDescriptor{
             label: Some("directional_lights"),
             size: std::mem::size_of::<DirectionalLight>() as u64,
+            #[cfg(target_arch = "wasm32")]
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,  // UNIFORM wasm中不支持STORAGE
+            #[cfg(not(target_arch = "wasm32"))]
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -82,6 +88,9 @@ impl LightManager {
         let spot_light_buffer = device.create_buffer(&wgpu::BufferDescriptor{
             label: Some("spot_lights"),
             size: std::mem::size_of::<SpotLight>() as u64,
+            #[cfg(target_arch = "wasm32")]
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,  // UNIFORM wasm中不支持STORAGE
+            #[cfg(not(target_arch = "wasm32"))]
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -187,6 +196,9 @@ impl LightManager {
                     binding: 0,
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
+                        #[cfg(target_arch = "wasm32")]
+                        ty: wgpu::BufferBindingType::Uniform, // wasm中不支持Storage
+                        #[cfg(not(target_arch = "wasm32"))]
                         ty: wgpu::BufferBindingType::Storage { read_only: true },
                         has_dynamic_offset: false,
                         min_binding_size: None,
@@ -197,6 +209,9 @@ impl LightManager {
                     binding: 1,
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
+                        #[cfg(target_arch = "wasm32")]
+                        ty: wgpu::BufferBindingType::Uniform, // wasm中不支持Storage
+                        #[cfg(not(target_arch = "wasm32"))]
                         ty: wgpu::BufferBindingType::Storage { read_only: true },
                         has_dynamic_offset: false,
                         min_binding_size: None,
@@ -207,6 +222,9 @@ impl LightManager {
                     binding: 2,
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
+                        #[cfg(target_arch = "wasm32")]
+                        ty: wgpu::BufferBindingType::Uniform, // wasm中不支持Storage
+                        #[cfg(not(target_arch = "wasm32"))]
                         ty: wgpu::BufferBindingType::Storage { read_only: true },
                         has_dynamic_offset: false,
                         min_binding_size: None,
