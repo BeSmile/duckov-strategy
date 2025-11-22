@@ -40,19 +40,19 @@ pub async fn load_binary(file_name: &str) -> anyhow::Result<Vec<u8>> {
     Ok(data)
 }
 
+pub type MeshId = String;
+pub type MaterialId = String;
 
 #[derive(Debug)]
 pub struct ResourceManager {
     materials: HashMap<Entity, Arc<Material>>,
     meshes: HashMap<Entity, Arc<Mesh>>,
-    mesh_manifest: HashMap<String, Arc<Mesh>>,
-    material_manifest: HashMap<String, Arc<Material>>,
+    mesh_manifest: HashMap<MeshId, Arc<Mesh>>,
+    material_manifest: HashMap<MaterialId, Arc<Material>>,
     manifest: HashMap<String, String>,
     texture_manifest: HashMap<String, Arc<Texture>>,
     white_texture: Arc<Texture>,
 }
-
-
 
 impl ResourceManager {
     pub fn new(device: &Device, queue: &Queue) -> Self {
@@ -89,16 +89,16 @@ impl ResourceManager {
         Ok(data)
     }
 
-     fn has_mesh(&self, guid: &str) -> Option<Arc<Mesh>> {
+     pub fn has_mesh(&self, guid: &str) -> Option<Arc<Mesh>> {
         self.mesh_manifest.get(guid).map(Arc::clone)
     }
     
-     fn has_material(&self, guid: &str) -> Option<Arc<Material>> {
+     pub fn has_material(&self, guid: &str) -> Option<Arc<Material>> {
         self.material_manifest.get(guid).map(Arc::clone)
     }
 
     // 加载Mesh资源，顶点格式数据之类的
-    pub async fn load_mesh(&mut self, guid: &str, entity: Entity, device: &Device, scene: &Scene, material: &Material, config: &SurfaceConfiguration) -> anyhow::Result<u32> {
+    pub async fn load_mesh(&mut self, guid: &MeshId, entity: Entity, device: &Device, scene: &Scene, material: &Material, config: &SurfaceConfiguration) -> anyhow::Result<u32> {
         let file_path = self.manifest.get(guid).unwrap();
 
         let mesh: Arc<Mesh> = if let Some(mesh) = self.has_mesh(guid) {
@@ -112,7 +112,7 @@ impl ResourceManager {
             // })?;
             
             println!("Start Loaded mesh: {:?}", guid);
-            let mesh = Mesh::from_unity_data(&bytes, device, scene, material, config).await.map_err(|e| {
+            let mesh = Mesh::from_unity_data(&bytes, guid, device, scene, material, config).await.map_err(|e| {
                 println!("Failed to load mesh: {:?}", guid);
                 e
             })?;
@@ -126,7 +126,7 @@ impl ResourceManager {
     }
 
     // 加载mat资源材质包，暂时使用实体的Id
-    pub async fn load_material(&mut self, entity: Entity, guid: &str, device: &Device, queue: &Queue) -> anyhow::Result<u32> {
+    pub async fn load_material(&mut self, entity: Entity, guid: &MaterialId, device: &Device, queue: &Queue) -> anyhow::Result<u32> {
         // println!("Loading material: {:?}", guid);
         let file_path = self.manifest.get(guid).unwrap();
         let material: Arc<Material> = if let Some(mat) = self.has_material(guid) {
@@ -139,7 +139,7 @@ impl ResourceManager {
             // })?;
 
             // 后续处理多布局layout的问题, 可能共用mesh, 会有优化部分, 先使用entity_id
-            let material = Material::from_unity_bytes(&mat_bytes, device, queue, self).await?;
+            let material = Material::from_unity_bytes(&mat_bytes, guid, device, queue, self).await?;
 
             let material_arc = Arc::new(material);
             self.material_manifest.insert(guid.to_string(), Arc::clone(&material_arc));
@@ -174,12 +174,12 @@ impl ResourceManager {
         Ok(texture)
     }
 
-    pub fn get_material(&self, entity: Entity) -> Option<&Arc<Material>> {
-        self.materials.get(&entity)
+    pub fn get_material(&self, entity: &Entity) -> Option<&Arc<Material>> {
+        self.materials.get(entity)
     }
 
-    pub fn get_mesh(&self, entity: Entity) -> Option<&Arc<Mesh>> {
-        self.meshes.get(&entity)
+    pub fn get_mesh(&self, entity: &Entity) -> Option<&Arc<Mesh>> {
+        self.meshes.get(entity)
     }
     
     pub fn has_texture(&self, guid: &str) -> Option<Arc<Texture>> {

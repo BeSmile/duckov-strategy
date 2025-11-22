@@ -6,10 +6,10 @@ use cgmath::{Matrix4, Rotation3, Vector3, Vector4};
 use wgpu::{Device, Queue, SurfaceConfiguration};
 
 use crate::camera::Camera;
-use crate::entity::{Entity, Mesh, Model, Transform, TransformSystem};
+use crate::entity::{Entity, InstanceRaw, Mesh, Model, Transform, TransformSystem};
 use crate::light::{DirectionalLight, LightManager, PointLight};
 use crate::materials::{Material, Texture};
-use crate::resource::{ResourceManager, load_binary};
+use crate::resource::{MaterialId, MeshId, ResourceManager, load_binary};
 use crate::utils::get_background_color;
 
 pub type PipelineId = String;
@@ -17,6 +17,7 @@ pub type PipelineId = String;
 use crate::unity::{Component, UnityMeshFilter, UnityMeshRenderer, UnityScene};
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Instant;
+use wgpu::util::DeviceExt;
 #[cfg(target_arch = "wasm32")]
 use web_time::Instant;
 
@@ -54,14 +55,123 @@ pub struct Scene {
 
     // 存储所有的transform变换数据
     pub transform_system: TransformSystem,
+    // 批量更新系统
+    pub render_batches: RenderBatchSystem,
 
     // 存放所有的transform buffer数据
-    transforms_uniform_buffer: wgpu::Buffer,
+    // transforms_uniform_buffer: wgpu::Buffer,
     // transform数据的bind_group
-    pub transform_bind_group: wgpu::BindGroup,
-    pub transform_bind_group_layout: wgpu::BindGroupLayout,
-
+    // pub transform_bind_group: wgpu::BindGroup,
+    // pub transform_bind_group_layout: wgpu::BindGroupLayout,
     entity_offsets: HashMap<Entity, u32>,
+}
+
+// render一次批量
+struct RenderBatch {
+    pub mesh_id: MeshId,
+    pub material_id: MaterialId,
+    pub entities: Vec<Entity>,                 // 属于这个批次的entities
+    pub instance_buffer: Option<wgpu::Buffer>, // 延迟创建
+}
+
+pub struct RenderBatchSystem {
+    // 按(mesh_id, material_id)分组的渲染批次
+    batches: HashMap<(MeshId, MaterialId), RenderBatch>,
+    // 是否需要重建批次(当entity增删或组件变化时)
+    dirty: bool,
+}
+
+impl Default for RenderBatchSystem {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RenderBatchSystem {
+    pub fn new() -> Self {
+        Self {
+            batches: Default::default(),
+            dirty: false,
+        }
+    }
+
+    // 标记为需要重建
+    pub fn mark_dirty(&mut self) {
+        self.dirty = true;
+    }
+
+    pub fn update_instance_buffers(
+        &mut self,
+        device: &Device,
+        transform_system: &TransformSystem,
+        // camera: &Camera,
+        // enable_frustum_culling: bool,
+    ) {
+        // 更新instance_buffers
+
+        for batch in self.batches.values_mut() {
+            let instances: Vec<InstanceRaw> = batch.entities.iter().filter_map(|&entity| {
+                let transform =  transform_system.get_world_matrix(entity);
+                match transform {
+                    Some(ts) => Some(InstanceRaw{
+                        model: ts.into()
+                    }),
+                    None => {
+                        println!("entity: {:?} not transofm", entity);
+                        None
+                    }
+                }
+                
+            }).collect();
+
+            if instances.is_empty() {
+                batch.instance_buffer = None; // 全部被剔除
+                continue;
+            }
+            // 创建/更新instance buffer
+            batch.instance_buffer = Some(device.create_buffer_init(
+                &wgpu::util::BufferInitDescriptor {
+                    label: Some("Instance Buffer"),
+                    contents: bytemuck::cast_slice(&instances),
+                    usage: wgpu::BufferUsages::VERTEX,
+                }
+            ));
+        }
+    }
+
+    pub fn rebuild_batches(
+        &mut self,
+        entities: &[Entity],
+        entity_display_map: &HashMap<Entity, bool>,
+        resource_manager: &ResourceManager,
+    ) {
+        self.batches.clear();
+
+        for entity in entities {
+            if !entity_display_map.get(&entity).unwrap_or(&true) {
+                continue;
+            }
+            let Some(mesh) = resource_manager.get_mesh(entity) else {
+                continue;
+            };
+            let Some(material) = resource_manager.get_material(entity) else {
+                continue;
+            };
+            // let id = mesh.id.clone();
+            let key = (mesh.id.clone(), material.id.clone());
+            self.batches
+                .entry(key)
+                .or_insert_with(|| RenderBatch {
+                    mesh_id: mesh.id.clone(),
+                    material_id: material.id.clone(),
+                    entities: Vec::new(),
+                    instance_buffer: None,
+                })
+                .entities
+                .push(entity.clone());
+        }
+        self.dirty = true;
+    }
 }
 
 #[repr(C)]
@@ -113,52 +223,56 @@ impl Scene {
         });
 
         let alignment = device.limits().min_uniform_buffer_offset_alignment as u64;
-        println!("Real alignment required: {}", alignment);  // 在 macOS 上打印看看
+        println!("Real alignment required: {}", alignment); // 在 macOS 上打印看看
         // ⭐ 一次性更新所有 transform 到 buffer
         // let max_entities = 100000;// 数据连续： 优化部分，transform 高频变化数据，直接通过offset进行数据的写入以及更新，利用entity的is_dirty进行管理是否更新
         let aligned_size = Self::aligned_uniform_size(size_of::<Matrix4<f32>>() as u64);
 
-        println!("max_entities: {}, aligned_size: {}", max_entities, aligned_size * max_entities as u64);
-        let transforms_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Transforms Buffer"),
-            size: aligned_size * max_entities as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
+        println!(
+            "max_entities: {}, aligned_size: {}",
+            max_entities,
+            aligned_size * max_entities as u64
+        );
+        // let transforms_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        //     label: Some("Transforms Buffer"),
+        //     size: aligned_size * max_entities as u64,
+        //     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        //     mapped_at_creation: false,
+        // });
 
-        let transform_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("Transform Bind Layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: true, // 动态偏移
-                        min_binding_size: Some(
-                            std::num::NonZeroU64::new(std::mem::size_of::<Matrix4<f32>>() as u64)
-                                .unwrap(),
-                        ),
-                    },
-                    count: None,
-                }],
-            });
+        // let transform_bind_group_layout =
+        //     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        //         label: Some("Transform Bind Layout"),
+        //         entries: &[wgpu::BindGroupLayoutEntry {
+        //             binding: 0,
+        //             visibility: wgpu::ShaderStages::VERTEX,
+        //             ty: wgpu::BindingType::Buffer {
+        //                 ty: wgpu::BufferBindingType::Uniform,
+        //                 has_dynamic_offset: true, // 动态偏移
+        //                 min_binding_size: Some(
+        //                     std::num::NonZeroU64::new(std::mem::size_of::<Matrix4<f32>>() as u64)
+        //                         .unwrap(),
+        //                 ),
+        //             },
+        //             count: None,
+        //         }],
+        //     });
 
-        let transform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Transform Bind Group"),
-            layout: &transform_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                    buffer: &transforms_uniform_buffer,
-                    offset: 0,
-                    size: Some(
-                        std::num::NonZeroU64::new(std::mem::size_of::<Matrix4<f32>>() as u64)
-                            .unwrap(),
-                    ),
-                }),
-            }],
-        });
+        // let transform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        //     label: Some("Transform Bind Group"),
+        //     layout: &transform_bind_group_layout,
+        //     entries: &[wgpu::BindGroupEntry {
+        //         binding: 0,
+        //         resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+        //             buffer: &transforms_uniform_buffer,
+        //             offset: 0,
+        //             size: Some(
+        //                 std::num::NonZeroU64::new(std::mem::size_of::<Matrix4<f32>>() as u64)
+        //                     .unwrap(),
+        //             ),
+        //         }),
+        //     }],
+        // });
 
         Scene {
             light_manager,
@@ -174,11 +288,12 @@ impl Scene {
             pipeline_manager: PipelineManager::new(),
             // materials: HashMap::new(),
             transform_system: TransformSystem::new(),
-            transform_bind_group,
-            transform_bind_group_layout,
-            transforms_uniform_buffer,
+            // transform_bind_group,
+            // transform_bind_group_layout,
+            // transforms_uniform_buffer,
             entity_offsets: HashMap::new(),
             entity_display_map: HashMap::new(),
+            render_batches: RenderBatchSystem::default(),
         }
     }
 
@@ -196,7 +311,6 @@ impl Scene {
         resource_manager: &mut ResourceManager,
         config: &SurfaceConfiguration,
     ) -> anyhow::Result<()> {
-
         let indexs = &unity_scene.index; // 查看类型
         let objects = &unity_scene.game_object;
         let transforms = &unity_scene.transforms;
@@ -218,7 +332,7 @@ impl Scene {
             let mut unity_mesh_filter: Option<&UnityMeshFilter> = None;
 
             let mut local_transform = Transform::new();
-            
+
             for m_component in &game_object.m_component {
                 let file_id = m_component.component.file_id.clone();
                 let s_type = indexs.get(&file_id);
@@ -227,7 +341,7 @@ impl Scene {
                     Some(s) if s.as_str() == "UnityTransform" => {
                         let transform = transforms.get(&file_id);
                         let op = transform.as_deref();
-                        
+
                         let Some(unity_transform) = op else {
                             continue;
                         };
@@ -238,10 +352,10 @@ impl Scene {
                         local_transform.set_position(&unity_transform.m_local_position);
                         let unity_rot = &unity_transform.m_local_rotation;
                         local_transform.set_rotation(cgmath::Quaternion::new(
-                            -unity_rot.w,  // w 取负
-                            unity_rot.x,   // x 保持
-                            unity_rot.y,   // y 保持
-                            -unity_rot.z,  // z 取负
+                            -unity_rot.w, // w 取负
+                            unity_rot.x,  // x 保持
+                            unity_rot.y,  // y 保持
+                            -unity_rot.z, // z 取负
                         ));
                         let unity_scale = &unity_transform.m_local_scale;
                         local_transform.set_scale(Vector3::new(
@@ -262,8 +376,6 @@ impl Scene {
                                     Entity::new(transform.m_game_object.file_id),
                                     Entity::new(unity_transform.m_game_object.file_id),
                                 );
-
-
                             }
                         }
                         scene.entities.push(entity);
@@ -275,7 +387,9 @@ impl Scene {
                     Some(s) if s.as_str() == "UnityMeshFilter" => {
                         unity_mesh_filter = mesh_filters.get(&file_id);
                     }
-                    Some(s) if s.as_str() == "UnityLight" || s.as_str() == "UnitySodaPointLight" => {
+                    Some(s)
+                        if s.as_str() == "UnityLight" || s.as_str() == "UnitySodaPointLight" =>
+                    {
                         is_light = true;
                     }
                     _ => {}
@@ -286,28 +400,29 @@ impl Scene {
                 println!("entity: {:?} End Ground", entity);
             }
             // 光照暂时不渲染
-            if is_light { 
+            if is_light {
                 continue;
             }
-            
+
             scene.add_entity(entity, local_transform);
-            
-            let Some(mesh_filter) = unity_mesh_filter else { continue };
-            let Some(mesh_mesh_reference) =  unity_mesh_render else {
-                continue
+
+            let Some(mesh_filter) = unity_mesh_filter else {
+                continue;
+            };
+            let Some(mesh_mesh_reference) = unity_mesh_render else {
+                continue;
             };
             // 材质球
-            let Some(mesh_render) = mesh_mesh_reference.m_children.get(0) else { continue  };
-            // println!("loading unity 材质球 {:?}", mesh_render);
+            let Some(mesh_render) = mesh_mesh_reference.m_children.get(0) else {
+                continue;
+            };
 
             resource_manager
                 .load_material(entity, &mesh_render.guid, device, queue)
                 .await?;
 
-            let material = {
-                Arc::clone(resource_manager.get_material(entity).unwrap())
-            };
-            
+            let material = { Arc::clone(resource_manager.get_material(&entity).unwrap()) };
+
             resource_manager
                 .load_mesh(
                     &mesh_filter.m_mesh.guid,
@@ -319,8 +434,13 @@ impl Scene {
                 )
                 .await?;
         }
-        
+
         scene.transform_system.update();
+        scene.render_batches.rebuild_batches(
+            &scene.entities,
+            &scene.entity_display_map,
+            &resource_manager,
+        );
 
         Ok(())
     }
@@ -329,7 +449,7 @@ impl Scene {
         self.entities.push(entity);
         self.transform_system.add_transform(entity, transform);
     }
-    
+
     pub fn hidden_entity(&mut self, entity: Entity) {
         self.entity_display_map.insert(entity, false);
     }
@@ -359,7 +479,7 @@ impl Scene {
     }
 
     // 更新-> 通过queue写入gpu buffer
-    pub fn update(&mut self, queue: &wgpu::Queue, delta_time: f32) {
+    pub fn update(&mut self, queue: &Queue, delta_time: f32) {
         // 更新相机
         self.camera.update(queue, 0.0);
 
@@ -381,26 +501,26 @@ impl Scene {
             bytemuck::bytes_of(&scene_uniforms),
         );
 
-        // ⭐ 一次性更新所有 transform 到 buffer
-        let aligned_size =
-            Self::aligned_uniform_size(std::mem::size_of::<Matrix4<f32>>() as u64) as u32;
+        // 一次性更新所有 transform 到 buffer
+        // let aligned_size =
+        //     Self::aligned_uniform_size(std::mem::size_of::<Matrix4<f32>>() as u64) as u32;
 
         // 根据索引检查entity的is_dirty数据进行写入
-        for (index, &entity) in self.entities.iter().enumerate() {
-            if let Some(matrix) = self.transform_system.get_world_matrix(entity) {
-                let matrix_array: [[f32; 4]; 4] = matrix.into();
-                // println!("entity {:?}", matrix_array);
-                let offset = index as u32 * aligned_size;
-                // 固定的偏移量
-                self.entity_offsets.insert(entity, offset);
-
-                queue.write_buffer(
-                    &self.transforms_uniform_buffer,
-                    offset as u64,
-                    bytemuck::cast_slice(&[matrix_array]),
-                );
-            }
-        }
+        // for (index, &entity) in self.entities.iter().enumerate() {
+        //     if let Some(matrix) = self.transform_system.get_world_matrix(entity) {
+        //         let matrix_array: [[f32; 4]; 4] = matrix.into();
+        //         // println!("entity {:?}", matrix_array);
+        //         let offset = index as u32 * aligned_size;
+        //         // 固定的偏移量
+        //         self.entity_offsets.insert(entity, offset);
+        //
+        //         queue.write_buffer(
+        //             &self.transforms_uniform_buffer,
+        //             offset as u64,
+        //             bytemuck::cast_slice(&[matrix_array]),
+        //         );
+        //     }
+        // }
 
         // 渲染所有的transform
         // for entity in &mut self.entities {
@@ -432,42 +552,33 @@ impl Scene {
     // }
 
     pub fn render<'a>(
-        &'a self,
+        &'a mut self,
+        device: &Device,
         render_pass: &mut wgpu::RenderPass<'a>,
         resource_manager: &'a ResourceManager,
     ) {
-        // println!("resource_manager: {:#?}", &resource_manager);
-        // 渲染实体
-        for entity in &self.entities {
-            let hidden = self.entity_display_map.get(entity).unwrap_or(&false);
-            // 隐藏属性不展示
-            if *hidden == true { 
+        
+        self.render_batches.update_instance_buffers(device, &self.transform_system);
+
+        for batch in self.render_batches.batches.values() {
+            let Some(instance_buffer) = &batch.instance_buffer  else {
                 continue;
-            }
-            
+            };
             // 从资源管理器获取 mesh
-            let Some(mesh) = resource_manager.get_mesh(*entity) else {
+            let Some(mesh) = resource_manager.has_mesh(&batch.mesh_id) else {
                 // println!("Mesh does not exist for {:?}", entity);
                 continue; // 没有 mesh 就跳过
             };
 
-            // 从资源管理器获取 material
-            let Some(material) = resource_manager.get_material(*entity) else {
-                println!("Material does not exist for {:?}", entity);
-                continue;
+            // 从资源管理器获取 mesh
+            let Some(material) = resource_manager.has_material(&batch.material_id) else {
+                // println!("Mesh does not exist for {:?}", entity);
+                continue; // 没有 mesh 就跳过
             };
 
-            // let Some(world_matrix) = self.transform_system.get_world_matrix(*entity) else {
-            //     println!("World matrix does not exist for {:?}", entity);
-            //     continue;
-            // };
-            let Some(&offset) = self.entity_offsets.get(&entity) else {
-                continue;
-            };
-
-            // 绑定模型特定的资源并渲染
             render_pass.set_pipeline(&mesh.render_pipeline);
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+            render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
             render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
             // 设置渲染管线- 动态管线
@@ -475,12 +586,61 @@ impl Scene {
             render_pass.set_bind_group(0, &self.camera.bind_group, &[]);
             render_pass.set_bind_group(1, &self.scene_bind_group, &[]);
             // render_pass.set_bind_group(2, &self.light_manager.bind_group, &[]);
-            render_pass.set_bind_group(2, &self.transform_bind_group, &[offset]);
+            // render_pass.set_bind_group(2, &self.transform_bind_group, &[offset]);
 
-            render_pass.set_bind_group(3, &material.bind_group, &[]);
+            // print!("pipeline {},", batch.entities.len());
 
+            render_pass.set_bind_group(2, &material.bind_group, &[]);
             // 创建pipeline 布局等等，设置buffer之类
-            render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
+            render_pass.draw_indexed(0..mesh.index_count, 0, 0..batch.entities.len() as u32,);
         }
+
+
+        // println!("resource_manager: {:#?}", &resource_manager);
+        // 渲染实体
+        // for entity in &self.entities {
+        //     let hidden = self.entity_display_map.get(entity).unwrap_or(&false);
+        //     // 隐藏属性不展示
+        //     if *hidden == true {
+        //         continue;
+        //     }
+        //
+        //     // 从资源管理器获取 mesh
+        //     let Some(mesh) = resource_manager.get_mesh(entity) else {
+        //         // println!("Mesh does not exist for {:?}", entity);
+        //         continue; // 没有 mesh 就跳过
+        //     };
+        //
+        //     // 从资源管理器获取 material
+        //     let Some(material) = resource_manager.get_material(entity) else {
+        //         println!("Material does not exist for {:?}", entity);
+        //         continue;
+        //     };
+        //
+        //     // let Some(world_matrix) = self.transform_system.get_world_matrix(*entity) else {
+        //     //     println!("World matrix does not exist for {:?}", entity);
+        //     //     continue;
+        //     // };
+        //     let Some(&offset) = self.entity_offsets.get(&entity) else {
+        //         continue;
+        //     };
+        //
+        //     // 绑定模型特定的资源并渲染
+        //     render_pass.set_pipeline(&mesh.render_pipeline);
+        //     render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+        //     render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        //
+        //     // 设置渲染管线- 动态管线
+        //     // bind_group全局资源
+        //     render_pass.set_bind_group(0, &self.camera.bind_group, &[]);
+        //     render_pass.set_bind_group(1, &self.scene_bind_group, &[]);
+        //     // render_pass.set_bind_group(2, &self.light_manager.bind_group, &[]);
+        //     // render_pass.set_bind_group(2, &self.transform_bind_group, &[offset]);
+        //
+        //     render_pass.set_bind_group(3, &material.bind_group, &[]);
+        //
+        //     // 创建pipeline 布局等等，设置buffer之类
+        //     render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
+        // }
     }
 }

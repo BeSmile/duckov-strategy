@@ -5,6 +5,7 @@ use half::f16;
 use wgpu::{BufferAddress, Device, Queue, SurfaceConfiguration};
 use wgpu::util::DeviceExt;
 use crate::materials::{Material, Texture};
+use crate::resource::MeshId;
 use crate::scene::Scene;
 use crate::unity::{Channel, MeshAsset, UnityVertexAttribute, UnityVertexAttributeDescriptor, UnityVertexFormat};
 
@@ -378,6 +379,7 @@ impl Vertex {
 // 每个mesh都有自己的desc
 #[derive(Debug, Clone)]
 pub struct Mesh{
+    pub id: MeshId,
     pub name: String,
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
@@ -577,7 +579,7 @@ impl Mesh{
     }
 
     // 初始化pipeline 以及各类的布局
-    pub async fn from_unity_data(buff: &[u8], device: &Device, scene: &Scene, material: &Material, config: &SurfaceConfiguration) -> anyhow::Result<Mesh> {
+    pub async fn from_unity_data(buff: &[u8], id: &MeshId, device: &Device, scene: &Scene, material: &Material, config: &SurfaceConfiguration) -> anyhow::Result<Mesh> {
         let content = std::str::from_utf8(buff)?;
         // 获取mesh文件
         let raw_asset = serde_yaml::from_str::<MeshAsset>(content).map_err(|e| {
@@ -630,6 +632,7 @@ impl Mesh{
         let render_pipeline = Self::create_render_pipeline(device, scene, config, material, &vertex_descriptors, &raw.m_name);
 
         Ok(Mesh{
+            id: id.clone(),
             name: format!("Mesh: {}", raw.m_name),
             vertex_buffer,
             index_buffer,
@@ -652,13 +655,12 @@ impl Mesh{
                 // 光照
                 // &scene.light_manager.bind_group_layout,
                 // transforms座标系
-                &scene.transform_bind_group_layout,
+                // &scene.transform_bind_group_layout,
                 
                 &material.bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
-
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
@@ -692,7 +694,8 @@ impl Mesh{
                 entry_point: Some("vs_main"),
                 compilation_options: Default::default(),
                 buffers: &[
-                    buffer_layout.as_ref()
+                    buffer_layout.as_ref(),
+                    InstanceRaw::desc(),
                 ],
             },
             primitive,
@@ -823,6 +826,44 @@ pub struct Transform {
     pub is_dirty: bool,
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct InstanceRaw {
+    pub model: [[f32; 4]; 4],
+}
+
+impl InstanceRaw {
+    fn desc() -> wgpu::VertexBufferLayout<'static> {
+        use std::mem;
+        wgpu::VertexBufferLayout {
+            array_stride: size_of::<InstanceRaw>() as BufferAddress,
+            step_mode: wgpu::VertexStepMode::Instance,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: 0,
+                    shader_location: 8,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
+                    shader_location: 9,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
+                    shader_location: 10,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: mem::size_of::<[f32; 12]>() as wgpu::BufferAddress,
+                    shader_location: 11,
+                },
+            ],
+        }
+    }
+}
+
 impl Default for Transform {
     fn default() -> Self {
         Self::new()
@@ -951,7 +992,7 @@ impl TransformSystem {
                 let children_vec: Vec<Entity> = children.iter().copied().collect();
 
                 for &child in &children_vec {
-                    
+
                     self.update_hierarchy(child, world_matrix);
                 }
             }

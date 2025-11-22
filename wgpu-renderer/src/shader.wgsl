@@ -9,6 +9,13 @@ struct VertexInput{
 //   @location(5) uv1: vec2<f32>,
 }
 
+struct InstanceInput{
+    @location(8) model_matrix_0: vec4<f32>,
+    @location(9) model_matrix_1: vec4<f32>,
+    @location(10) model_matrix_2: vec4<f32>,
+    @location(11) model_matrix_3: vec4<f32>,
+}
+
 struct VertexOutput{
     @builtin(position) clip_position: vec4<f32>,
     @location(0) normal: vec4<f32>,
@@ -40,28 +47,35 @@ var<uniform> camera:CameraUniform;
 @group(1) @binding(0)
 var<uniform> scene:SceneUniforms;
 
-@group(2) @binding(0)
-var<uniform> tranforms:mat4x4<f32>;
+//@group(2) @binding(0)
+//var<uniform> tranforms:mat4x4<f32>;
 
-@group(3) @binding(0)
+@group(2) @binding(0)
 var albedo_texture: texture_2d<f32>;
-@group(3) @binding(1)
+@group(2) @binding(1)
 var normal_texture: texture_2d<f32>;
-@group(3) @binding(2)
+@group(2) @binding(2)
 var metallic_texture: texture_2d<f32>;
-@group(3) @binding(3)
+@group(2) @binding(3)
 var ao_texture: texture_2d<f32>;
-@group(3) @binding(4)
+@group(2) @binding(4)
 var s_diffuse: sampler;
 
 @vertex
-fn vs_main(input: VertexInput) -> VertexOutput{
+fn vs_main(input: VertexInput, instance: InstanceInput,) -> VertexOutput{
     var out: VertexOutput;
     var position  = vec4<f32>(input.position, 1.0);
 
+     var model_matrix = mat4x4<f32>(
+        instance.model_matrix_0,
+        instance.model_matrix_1,
+        instance.model_matrix_2,
+        instance.model_matrix_3,
+    );
     out.normal = input.normal;
 
-    out.clip_position = camera.view_proj * tranforms * position;
+
+    out.clip_position = camera.view_proj * model_matrix * position;
 
     out.uv0 = vec2<f32>(input.uv0.x,  1.0 - input.uv0.y);
 //    out.uv0 = fract(out.uv0);

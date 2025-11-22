@@ -4,7 +4,7 @@ use cfg_if::cfg_if;
 use log::info;
 use serde::{Deserialize, Serialize};
 use wgpu::{Device, Queue, TextureView};
-use crate::resource::{load_binary, ResourceManager};
+use crate::resource::{load_binary, MaterialId, ResourceManager};
 use crate::unity::{Color, TextureReference, UnityReference};
 use crate::utils::get_block_mesh;
 
@@ -247,6 +247,7 @@ impl MaterialLayoutBuilder {
 // 材质 一次管线渲染只用一个材质
 #[derive(Debug)]
 pub struct Material{
+    pub id: MaterialId,
     pub name: String,
     pub albedo_texture: Option<Arc<Texture>>,      // _MainTex
     pub normal_texture: Option<Arc<Texture>>,      // _BumpMap
@@ -264,7 +265,7 @@ pub struct Material{
 }
 
 impl Material{
-    pub async fn from_unity_bytes(bytes: &[u8], device: &Device, queue: &Queue, resource_manager: &mut ResourceManager) -> anyhow::Result<Self>{
+    pub async fn from_unity_bytes(bytes: &[u8], id: &MaterialId, device: &Device, queue: &Queue, resource_manager: &mut ResourceManager) -> anyhow::Result<Self>{
         let content = std::str::from_utf8(bytes)?;
         let mat = serde_yaml::from_str::<MatYaml>(content)?;
         let unity_material = mat.material;
@@ -377,6 +378,7 @@ impl Material{
         });
 
         Ok(Self{
+            id: id.clone(),
             name: unity_material.name,
             albedo_texture,
             normal_texture,

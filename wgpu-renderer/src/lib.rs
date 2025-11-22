@@ -261,6 +261,7 @@ impl State {
             });
 
             self.scene.render(
+                &self.device,
                 &mut _render_pass,
                 &self.resource_manager
             );
