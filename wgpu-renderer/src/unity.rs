@@ -1,11 +1,13 @@
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_yaml::Value;
 use std::collections::{HashMap, HashSet};
-use std::fs;
+use std::fmt::Write;
+use std::{fmt, fs};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
-use cgmath::Vector3;
+use cgmath::{Point3, Vector3};
+use serde::de::Visitor;
 use wgpu::VertexAttribute;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -32,7 +34,7 @@ pub struct UnityGameObject {
     #[serde(rename = "m_Component")]
     pub m_component: Vec<ComponentEntry>,
     #[serde(rename = "m_Name")]
-    m_name: String,
+    pub m_name: String,
     #[serde(rename = "m_Layer")]
     m_layer: i8,
     #[serde(rename = "m_IsActive")]
@@ -104,10 +106,13 @@ impl UnityAsset for UnityTransform {
     }
 }
 
+
 #[derive(Debug, Clone, Serialize, Default, Deserialize)]
 pub struct UnityReference {
     #[serde(rename = "fileID")]
     pub file_id: i64,
+    // serde的bug， 需要看源码，提mr
+    // #[serde(deserialize_with = "deserialize_guid", default)]
     pub guid: String,
     #[serde(rename = "type")]
     pub ref_type: i32,
@@ -133,10 +138,12 @@ pub struct Color {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UnityMeshRenderer {
-    #[serde(skip_deserializing)]
-    file_id: u32,
+    // #[serde(skip_deserializing)]
+    // file_id: u32,
     #[serde(rename = "m_GameObject")]
     m_game_object: Component,
+    #[serde(rename = "m_Enabled")]
+    pub m_enabled: u8,
     #[serde(rename = "m_Materials")]
     pub m_children: Vec<UnityReference>,
 }
@@ -152,8 +159,6 @@ impl UnityAsset for UnityMeshRenderer {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UnityMeshFilter {
-    #[serde(skip_deserializing)]
-    file_id: u32,
     #[serde(rename = "m_GameObject")]
     m_game_object: Component,
     #[serde(rename = "m_Mesh")]
@@ -170,9 +175,15 @@ impl UnityAsset for UnityMeshFilter {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct Local_AABB{
+    #[serde(rename = "m_Center")]
+    pub m_center: Point3<f32>,
+    #[serde(rename = "m_Extent")]
+    pub m_extent: Point3<f32>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UnityMeshCollider {
-    #[serde(skip_deserializing)]
-    file_id: u32,
     #[serde(rename = "m_GameObject")]
     m_game_object: Component,// 表示挂载的game_object的file_id
     #[serde(rename = "m_Mesh")]
@@ -332,14 +343,19 @@ impl UnityAsset for UnitySodaPointLight {
 #[serde(untagged)] // 尝试匹配第一个成功的变体
 enum Asset {
     UnityGameObject(UnityGameObject),
+    UnityMeshFilter(UnityMeshFilter),
     UnityMeshCollider(UnityMeshCollider),
     UnityTransform(UnityTransform),
-    UnityMeshFilter(UnityMeshFilter),
     UnityMeshRenderer(UnityMeshRenderer),
     UnityBoxCollider(UnityBoxCollider),
     UnityLight(UnityLight),
     UnitySodaPointLight(UnitySodaPointLight),
-    // 您可以添加其他可能的类型
+}
+
+fn preprocess_yaml(content: &str) -> String {
+    // 匹配 guid: 后面的十六进制值，给它加引号
+    let re = regex::Regex::new(r"guid:\s*([0-9a-fA-F]{32})").unwrap();
+    re.replace_all(content, r#"guid: "$1""#).to_string()
 }
 
 impl UnityScene {
@@ -371,6 +387,7 @@ impl UnityScene {
 
         let buffer = BufReader::new(file);
 
+        let debug_id = 0;
         for line_result in buffer.lines() {
             let line = line_result?;
             // --- 开始追加捕获
@@ -379,9 +396,11 @@ impl UnityScene {
 
                 // 为空表示首次数据
                 if !content.trim().is_empty() {
-                    match serde_yaml::from_str::<Asset>(&content) {
+                    let processed = preprocess_yaml(&content);
+
+                    match serde_yaml::from_str::<Asset>(&processed) {
                         // m_IsActive需要处理连续隐藏的问题
-                        Ok(Asset::UnityGameObject(mut unity_game_object)) => {
+                        Ok(Asset::UnityGameObject(unity_game_object)) => {
                             // if unity_game_object.m_is_active == 1 {
                             //     // unity_game_object.set_file_id(unity_game_object.file_id);
                             //     unity_scene.game_object.insert(old_component_id, unity_game_object);
@@ -391,76 +410,133 @@ impl UnityScene {
                             //     }
                             //     deleted_ids.insert(old_component_id);
                             // }
+                            if old_component_id == debug_id {
+                                println!("UnityGameObject: {:?}", content);
+                                match serde_yaml::from_str::<UnityMeshFilter>(&content) {
+                                    Ok(_) => {}
+                                    Err(err) => {
+                                        panic!("Failed to deserialize unity mesh filter: {}", err);
+                                    }
+                                }
+                            }
                             unity_scene.game_object.insert(old_component_id, unity_game_object);
                         }
-                        Ok(Asset::UnityMeshCollider(mut mesh_collider)) => {
+                        Ok(Asset::UnityMeshCollider(mesh_collider)) => {
                             // 在已删除内就跳过
-                            if deleted_ids.contains(&mesh_collider.m_game_object.file_id) {
-                                continue
+                            // if deleted_ids.contains(&mesh_collider.m_game_object.file_id) {
+                            //     continue
+                            // }
+
+                            if old_component_id == debug_id {
+                                println!("UnityMeshCollider: {:?}", content);
+                                match serde_yaml::from_str::<UnityMeshFilter>(&content) {
+                                    Ok(_) => {}
+                                    Err(err) => {
+                                        panic!("Failed to deserialize unity mesh filter: {}", err);
+                                    }
+                                }
                             }
                             // mesh_collider.set_file_id(old_component_id);
                             unity_scene.index.insert(old_component_id, mesh_collider.name().to_string());
                             unity_scene.mesh_colliders.insert(old_component_id, mesh_collider);
                         }
                         Ok(Asset::UnityTransform(mut unity_transform)) => {
-                            if deleted_ids.contains(&unity_transform.m_game_object.file_id) {
-                                continue
+                            // if deleted_ids.contains(&unity_transform.m_game_object.file_id) {
+                            //     continue
+                            // }
+
+                            if old_component_id == debug_id {
+                                println!("UnityTransform: {:?}", content);
+                                match serde_yaml::from_str::<UnityMeshFilter>(&content) {
+                                    Ok(_) => {}
+                                    Err(err) => {
+                                        panic!("Failed to deserialize unity mesh filter: {}", err);
+                                    }
+                                }
                             }
                             // unity_transform.set_file_id(old_component_id);
                             unity_scene.index.insert(old_component_id, unity_transform.name().to_string());
                             unity_scene.transforms.insert(old_component_id, unity_transform);
                         }
-                        Ok(Asset::UnityMeshFilter(mut unity_mesh_filter)) => {
-                            if deleted_ids.contains(&old_component_id) {
-                                continue
+                        Ok(Asset::UnityMeshFilter(unity_mesh_filter)) => {
+                            // if deleted_ids.contains(&old_component_id) {
+                            //     continue
+                            // }
+
+                            if old_component_id == debug_id {
+                                println!("UnityMeshFilter解析: {:?}", content);
+                                match serde_yaml::from_str::<UnityMeshFilter>(&content) {
+                                    Ok(_) => {}
+                                    Err(err) => {
+                                        println!("错误位置: {:?}", err.location());
+
+                                        panic!("Failed to deserialize unity mesh filter: {}", err);
+                                    }
+                                }
                             }
                             // unity_mesh_filter.set_file_id(old_component_id);
                             unity_scene.index.insert(old_component_id, unity_mesh_filter.name().to_string());
-
                             unity_scene.mesh_filters.insert(old_component_id, unity_mesh_filter);
-
                         }
                         Ok(Asset::UnityMeshRenderer(mut unity_mesh_renderer)) => {
-                            if deleted_ids.contains(&old_component_id) {
-                                continue
+                            if old_component_id == debug_id {
+                                println!("UnityMeshRenderer: {:?}", content);
+                                match serde_yaml::from_str::<UnityMeshFilter>(&content) {
+                                    Ok(_) => {}
+                                    Err(err) => {
+                                        panic!("Failed to deserialize unity mesh filter: {}", err);
+                                    }
+                                }
                             }
-
                             // unity_mesh_renderer.set_file_id(old_component_id);
                             unity_scene.index.insert(old_component_id, unity_mesh_renderer.name().to_string());
-
                             unity_scene.mesh_renderers.insert(old_component_id, unity_mesh_renderer);
                         }
                         Ok(Asset::UnityBoxCollider(mut unity_box_collider)) => {
-                            if deleted_ids.contains(&old_component_id) {
-                                continue
+                            if old_component_id == debug_id {
+                                println!("UnityBoxCollider: {:?}", content);
+                                match serde_yaml::from_str::<UnityMeshFilter>(&content) {
+                                    Ok(_) => {}
+                                    Err(err) => {
+                                        panic!("Failed to deserialize unity mesh filter: {}", err);
+                                    }
+                                }
                             }
-
                             // unity_box_collider.set_file_id(old_component_id);
                             unity_scene.index.insert(old_component_id, unity_box_collider.name().to_string());
-
                             unity_scene.box_colliders.insert(old_component_id, unity_box_collider);
                         }
-                        Ok(Asset::UnityLight(mut light)) => {
-                            if deleted_ids.contains(&old_component_id) {
-                                continue
+                        Ok(Asset::UnityLight(light)) => {
+                            if old_component_id == debug_id {
+                                println!("UnityLight: {:?}", content);
+                                match serde_yaml::from_str::<UnityMeshFilter>(&content) {
+                                    Ok(_) => {}
+                                    Err(err) => {
+                                        panic!("Failed to deserialize unity mesh filter: {}", err);
+                                    }
+                                }
                             }
 
                             // unity_box_collider.set_file_id(old_component_id);
                             unity_scene.index.insert(old_component_id, light.name().to_string());
-
                             unity_scene.lights.insert(old_component_id, light);
                         }
-                        Ok(Asset::UnitySodaPointLight(mut light)) => {
-                            if deleted_ids.contains(&old_component_id) {
-                                continue
+                        Ok(Asset::UnitySodaPointLight(light)) => {
+                            if old_component_id == debug_id {
+                                println!("UnitySodaPointLight: {:?}", content);
+                                match serde_yaml::from_str::<UnityMeshFilter>(&content) {
+                                    Ok(_) => {}
+                                    Err(err) => {
+                                        panic!("Failed to deserialize unity mesh filter: {}", err);
+                                    }
+                                }
                             }
-                        
-                            // unity_box_collider.set_file_id(old_component_id);
                             unity_scene.index.insert(old_component_id, light.name().to_string());
-                        
+
                             unity_scene.soda_lights.insert(old_component_id, light);
                         }
-                        _ => {}
+                        _ => {
+                        }
                     }
                     content.clear(); // 清空内容
                 }
@@ -492,7 +568,7 @@ impl UnityScene {
 
         // 清洗数据，包含light等都要清洗
 
-        // fs::write("./save_j_lab_1.json", serde_json::to_string_pretty(&unity_scene).unwrap())?;
+        fs::write("./save_j_lab_2.json", serde_json::to_string_pretty(&unity_scene).unwrap())?;
 
         Ok(unity_scene)
     }
@@ -709,6 +785,8 @@ pub struct MeshRaw{
     pub vertex_data: VertexDataRaw,
     #[serde(rename(deserialize = "m_SubMeshes"))]
     pub sub_mesh: Vec<SubMesh>,
+    #[serde(rename = "m_LocalAABB")]
+    pub m_local_aabb: Local_AABB,
 }
 
 #[derive(Debug, Deserialize)]

@@ -7,6 +7,8 @@ mod unity;
 mod utils;
 mod entity;
 mod queries;
+mod ray;
+mod mesh;
 
 use log::info;
 use std::path::PathBuf;
@@ -18,6 +20,7 @@ use winit::{
     keyboard::{KeyCode, PhysicalKey},
     window::Window,
 };
+use winit::event::MouseScrollDelta;
 
 use crate::resource::{ResourceManager};
 use crate::scene::{Scene};
@@ -25,9 +28,11 @@ use crate::scene::{Scene};
 use wasm_bindgen::prelude::*;
 use wgpu::QuerySet;
 use wgpu::wgc::command::QueryError;
+use winit::dpi::PhysicalSize;
 use winit::window::WindowId;
-use crate::entity::{ Model, Vertex};
+use crate::entity::{Entity, Model, TransformSystem, Vertex};
 use crate::materials::{Texture};
+use crate::ray::Ray;
 use crate::unity::UnityScene;
 
 pub struct State {
@@ -41,6 +46,7 @@ pub struct State {
     config: wgpu::SurfaceConfiguration,
     is_surface_configured: bool,
     pub depth_texture: Option<Texture>,
+    mouse_pos: (f32, f32),
 }
 
 impl State {
@@ -143,11 +149,10 @@ impl State {
             desired_maximum_frame_latency: 2,
         };
 
-
         let mut uns = UnityScene::new();
         // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_JLab/Level_JLab_2.unity");
         // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_GroundZero/Level_GroundZero_1.unity");
-        let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_JLab/Level_JLab_2.unity");
+        let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_JLab/Level_JLab_1.unity");
 
         let mut unity_scene = uns.from_str(path)?;
 
@@ -170,6 +175,7 @@ impl State {
             scene,
             resource_manager,
             depth_texture: None,
+            mouse_pos: (0.0, 0.0),
         })
     }
 
@@ -193,6 +199,22 @@ impl State {
                 // 监听Key，保存移动方向
                 self.scene.camera.controller.handle_key(code, is_pressed);
             }
+        }
+    }
+
+    fn on_click(&self, scene: &Scene, window_size: PhysicalSize<u32>) {
+        let ray = Ray::from_screen_coords(
+            self.mouse_pos,
+            (window_size.width, window_size.height),
+            self.scene.camera.get_view_matrix(),
+            self.scene.camera.get_projection_only(), // 使用纯投影矩阵
+        );
+
+        if let Some((entity_id, distance)) = scene.pick_entity(&ray, &self.resource_manager) {
+            println!("Clicked entity {} at distance {}", entity_id, distance);
+            println!("pick entity: {:?} position: {:?}", ray, self.scene.transform_system.get_local_transform(Entity::new(entity_id)).unwrap());
+            
+            // Handle click event here
         }
     }
 
@@ -416,9 +438,28 @@ impl ApplicationHandler<State> for App {
                     },
                 ..
             } => state.handle_key(event_loop, code, key_state.is_pressed()),
+            // 处理鼠标滚轮和触控板缩放
+            WindowEvent::MouseWheel { delta, .. } => {
+                let scroll_delta = match delta {
+                    // Windows/Linux 鼠标滚轮
+                    MouseScrollDelta::LineDelta(_x, y) => y,
+                    // macOS 触控板双指手势
+                    MouseScrollDelta::PixelDelta(pos) => pos.y as f32 * 0.01,
+                };
+                state.scene.camera.controller.handle_scroll(scroll_delta);
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                state.mouse_pos = (position.x as f32, position.y as f32);
+            }
+            WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
+                let size = state.window.inner_size();
+                state.on_click(&state.scene, size,);
+            }
             _ => {}
         }
     }
+
+    
 }
 
 // 启动，从外部传入数据

@@ -2857,6 +2857,7 @@ dependencies = [
  "image",
  "log",
  "pollster",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",

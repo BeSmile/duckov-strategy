@@ -74,35 +74,114 @@ impl Texture {
     // 创建一个白色的材质
     pub fn create_dummy_white(device: &Device, queue: &Queue) -> Texture {
         use wgpu::util::DeviceExt;
+    
+        // let texture = device.create_texture_with_data(
+        //     queue,
+        //     &wgpu::TextureDescriptor {
+        //         label: Some("Dummy White"),
+        //         size: wgpu::Extent3d {
+        //             width: 1,
+        //             height: 1,
+        //             depth_or_array_layers: 1,
+        //         },
+        //         mip_level_count: 1,
+        //         sample_count: 1,
+        //         dimension: wgpu::TextureDimension::D2,
+        //         format: wgpu::TextureFormat::Rgba8UnormSrgb,// 设置输出格式srgb
+        //         usage: wgpu::TextureUsages::RENDER_ATTACHMENT // 3.
+        //             | wgpu::TextureUsages::TEXTURE_BINDING,
+        //         view_formats: &[
+        //             // Self::DEPTH_FORMAT,
+        //         ],
+        //     },
+        //     wgpu::util::TextureDataOrder::LayerMajor,
+        //     &[255, 255, 255, 255],  // 数据在创建时直接写入
+        // );
+        // 
+        // Texture {
+        //     view: texture.create_view(&wgpu::TextureViewDescriptor::default()),
+        //     texture,
+        //     sampler: device.create_sampler(&wgpu::SamplerDescriptor::default()),
+        // }
+        Self::create_default(device, queue, [255, 255, 255, 255], "Dummy White")
+    }
 
-        let texture = device.create_texture_with_data(
-            queue,
-            &wgpu::TextureDescriptor {
-                label: Some("Dummy White"),
-                size: wgpu::Extent3d {
-                    width: 1,
-                    height: 1,
-                    depth_or_array_layers: 1,
-                },
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8UnormSrgb,// 设置输出格式srgb
-                usage: wgpu::TextureUsages::RENDER_ATTACHMENT // 3.
-                    | wgpu::TextureUsages::TEXTURE_BINDING,
-                view_formats: &[
-                    // Self::DEPTH_FORMAT,
-                ],
+    /// 创建默认纯色贴图（1x1 像素）
+    pub fn create_default(
+        device: &Device,
+        queue: &Queue,
+        color: [u8; 4],  // RGBA
+        label: &str,
+    ) -> Self {
+        let size = wgpu::Extent3d {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 1,
+        };
+
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some(label),
+            size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+
+        // 写入单像素数据
+        queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
             },
-            wgpu::util::TextureDataOrder::LayerMajor,
-            &[255, 255, 255, 255],  // 数据在创建时直接写入
+            &color,  // 4 个字节：RGBA
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(4),  // 1 像素 * 4 通道
+                rows_per_image: Some(1),
+            },
+            size,
         );
 
-        Texture {
-            view: texture.create_view(&wgpu::TextureViewDescriptor::default()),
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+
+        Self {
             texture,
-            sampler: device.create_sampler(&wgpu::SamplerDescriptor::default()),
+            view,
+            sampler,
         }
+    }
+
+    /// 根据 Unity GUID 创建对应的默认贴图
+    pub fn from_unity_guid(
+        device: &Device,
+        queue: &Queue,
+        guid: &str,
+    ) -> Option<Self>  {
+        let (color, label) = match guid {
+            "0000000000000000f000000000000000" => ([255, 255, 255, 255], "Default_White"),
+            "0000000000000000e000000000000000" => ([0, 0, 0, 255], "Default_Black"),
+            "0000000000000000d000000000000000" => ([128, 128, 128, 255], "Default_Gray"),
+            "0000000000000000c000000000000000" => ([128, 128, 255, 255], "Default_Normal"), // 法线贴图 (0.5, 0.5, 1.0)
+            "0000000000000000b000000000000000" => ([255, 0, 0, 255], "Default_Red"),
+            _ => return None, // 不匹配时返回 None
+        };
+
+        Some(Self::create_default(device, queue, color, label))
     }
 
     pub fn  from_bytes(device: &Device, queue: &Queue, bys: Vec<u8>, label:&str) -> anyhow::Result<Self>{
@@ -297,6 +376,8 @@ impl Material{
 
         albedo_texture = Some(resource_manager.get_white_texture());
         
+        println!("Loading texture {:?}...", &tex_envs.main_tex);
+        
         if let (Some(main_tex), false) = (tex_envs.main_tex, block_mesh) {
             if let Some(guid) = main_tex.texture.guid {
                 println!("main_tex: {:?}", guid);
@@ -408,11 +489,13 @@ pub struct TextureProperty {
 pub struct TexEnvs {
     #[serde(rename = "_EmissionMap")]
     pub m_texture: Option<TextureProperty>,
+    #[serde(rename = "_BaseMap")]
+    pub base_map: Option<TextureProperty>,
     #[serde(rename = "_MainTex")]
     pub main_tex: Option<TextureProperty>,
     #[serde(rename = "_MetallicSmoothness")]
     pub metallic_smoothness: Option<TextureProperty>,
-    #[serde(rename = "_NormalMap")]
+    #[serde(rename = "_NormalMap", alias = "_Normal")]
     pub normal_map: Option<TextureProperty>,
 }
 

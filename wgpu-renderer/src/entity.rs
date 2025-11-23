@@ -1,17 +1,10 @@
 use std::collections::HashMap;
-use bytemuck::Pod;
-use cgmath::{Matrix4, One, Quaternion, SquareMatrix, Vector3, Zero};
+use cgmath::{Matrix4, One, Point3, Quaternion, SquareMatrix, Transform as CgmathTransform, Vector3, Zero};
 use half::f16;
 use wgpu::{BufferAddress, Device, Queue, SurfaceConfiguration};
-use wgpu::util::DeviceExt;
-use crate::materials::{Material, Texture};
-use crate::resource::MeshId;
-use crate::scene::Scene;
-use crate::unity::{Channel, MeshAsset, UnityVertexAttribute, UnityVertexAttributeDescriptor, UnityVertexFormat};
-
-// pub trait IVertex{
-//     fn desc<'a>() -> wgpu::VertexBufferLayout<'a>;
-// }
+use crate::materials::{Texture};
+use crate::mesh::Mesh;
+use crate::unity::{MeshAsset, UnityVertexAttribute, UnityVertexAttributeDescriptor, UnityVertexFormat};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -68,6 +61,19 @@ pub struct VertexColorUVFloat32 {    // sizeof 64
     tex_coords: [f32; 2],// uv0坐标
 }
 
+// SM_House05_Roof1 44
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct VertexFloat16x4Float {
+    position: [f32; 3],
+    normal: [f16; 4], // 法线
+    // 切线
+    tangent: [f16; 4],
+    tex_coords: [f16; 2],// uv坐标
+    uv_coords: [f32; 2],// uv1坐标
+    uv1_coords: [f16; 2],// uv2坐标
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct VertexTexUvFloat32 { // size_of: 56
@@ -77,6 +83,17 @@ pub struct VertexTexUvFloat32 { // size_of: 56
     tangent: [f32; 4],
     tex_coords: [f32; 2],// uv0坐标
     uv_coords: [f32; 2],// uv1坐标
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct VertexColorFloat3x4U8 {    // size_of: 52
+    position: [f32; 3],
+    normal: [f32; 3], // 法线
+    // 切线
+    tangent: [f32; 4],
+    color: [u8; 4], // 颜色
+    tex_coords: [f32; 2],// uv0坐标
 }
 
 #[repr(C)]
@@ -101,7 +118,7 @@ pub struct VertexUvFloat1632 { // size_of: 40
     uv_coords: [f32; 2],// uv1坐标
 }
 
-trait IVertex {
+pub trait IVertex {
     fn flip_z_axis(&mut self);
 }
 
@@ -124,6 +141,40 @@ impl IVertex for Vertex {
         self.tex_coords[1] = f16::from_f32(v.fract().abs());
     }
 }
+impl IVertex for VertexFloat16x4Float {
+    fn flip_z_axis(&mut self) {
+        // 翻转Z轴（位置）
+        self.position[2] = -self.position[2];
+        // 翻转法线Z
+        self.normal[2] = f16::from_f32(-self.normal[2].to_f32());
+
+        // 翻转切线Z和手性
+        self.tangent[2] = f16::from_f32(-self.tangent[2].to_f32());
+        self.tangent[3] = f16::from_f32(-self.tangent[3].to_f32());
+
+        let u = self.tex_coords[0].to_f32();
+        let v = self.tex_coords[1].to_f32();
+
+        // 使用fract()获取小数部分，映射到[0,1]
+        self.tex_coords[0] = f16::from_f32(u.fract().abs());
+        self.tex_coords[1] = f16::from_f32(v.fract().abs());
+
+        let u0 = self.uv_coords[0];
+        let v0 = self.uv_coords[1];
+
+        // 使用fract()获取小数部分，映射到[0,1]
+        self.uv_coords[0] = u0.fract().abs();
+        self.uv_coords[1] = v0.fract().abs();
+
+        let u1 = self.uv1_coords[0].to_f32();
+        let v1 = self.uv1_coords[1].to_f32();
+
+        // 使用fract()获取小数部分，映射到[0,1]
+        self.uv1_coords[0] = f16::from_f32(u1.fract().abs());
+        self.uv1_coords[1] = f16::from_f32(v1.fract().abs());
+
+    }
+}
 impl IVertex for VertexColor {
     fn flip_z_axis(&mut self) {
         // 翻转Z轴（位置）
@@ -141,6 +192,27 @@ impl IVertex for VertexColor {
         // 使用fract()获取小数部分，映射到[0,1]
         self.tex_coords[0] = f16::from_f32(u.fract().abs());
         self.tex_coords[1] = f16::from_f32(v.fract().abs());
+    }
+}
+
+impl IVertex for VertexColorFloat3x4U8 {
+    fn flip_z_axis(&mut self) {
+        // 翻转Z轴（位置）
+        self.position[2] = -self.position[2];
+        // 翻转法线Z
+        self.normal[2] = -self.normal[2];
+
+
+        // 翻转切线Z和手性
+        self.tangent[2] = -self.tangent[2];
+        self.tangent[3] = -self.tangent[3];
+
+        let u = self.tex_coords[0];
+        let v = self.tex_coords[1];
+
+        // 使用fract()获取小数部分，映射到[0,1]
+        self.tex_coords[0] = u.fract().abs();
+        self.tex_coords[1] = v.fract().abs();
     }
 }
 
@@ -376,423 +448,12 @@ impl Vertex {
     }
 }
 
-// 每个mesh都有自己的desc
-#[derive(Debug, Clone)]
-pub struct Mesh{
-    pub id: MeshId,
-    pub name: String,
-    pub vertex_buffer: wgpu::Buffer,
-    pub index_buffer: wgpu::Buffer,
-
-    // 顶点数量
-    pub vertex_count: u32,
-    pub index_count: u32,
-
-    // unity顶点描述
-    pub vertex_descriptors: Vec<UnityVertexAttributeDescriptor>,
-    // pub pipeline_layout: wgpu::PipelineLayout,
-    pub render_pipeline: wgpu::RenderPipeline,
-}
-
-impl Mesh{
-    // 转换并反转缠绕顺序
-    // pub fn parse_index_buffer(hex_string: &str) -> Vec<u32> {
-    //     let mut indices = parse_unity_index_buffer(hex_string);
-    //
-    //     // 反转每个三角形的缠绕顺序
-    //     for chunk in indices.chunks_exact_mut(3) {
-    //         chunk.swap(0, 2);
-    //     }
-    //     // println!("{:?}", indices);
-    //
-    //     indices
-    // }
-
-    fn parse_vertex_buffer(hex_string: &str, size_of: &BufferAddress, vertex_count: usize) -> Vec<u8> {
-        // 创建顶点数组
-        // let mut vertices: Vec<T> = Vec::with_capacity(vertex_count);
-        // // 清理数据
-        // let hex_clean: String = hex_string.chars().filter(|c| !c.is_whitespace()).collect();
-        //
-        // let bytes_per_vertex = 36;
-        // let stride = bytes_per_vertex * 2; // 每字节 2 个十六进制字符, unity的数据是16进制
-        //
-        // for i in 0..vertex_count {
-        //     let start = i * stride;
-        //     if start + stride > hex_clean.len() {
-        //         break;
-        //     }
-        //
-        //     let vertex_hex = &hex_clean[start..start + stride];
-        //
-        //     // 解析位置 (前12字节 = 24个十六进制字符)
-        //     let pos_x = parse_f32_le(&vertex_hex[0..8]);
-        //     let pos_y = parse_f32_le(&vertex_hex[8..16]);
-        //     let pos_z = parse_f32_le(&vertex_hex[16..24]);
-        //
-        //     // 解析法向量 (12-24字节)
-        //     let norm_x = parse_f32_le(&vertex_hex[24..32]);// offset 12
-        //     let norm_y = parse_f32_le(&vertex_hex[32..40]);
-        //     let norm_z = parse_f32_le(&vertex_hex[40..48]);
-        //
-        //     // 解析dimension:4
-        //     // let color_r = parse_f32_le(&vertex_hex[48..56]);
-        //     // let color_g = parse_f32_le(&vertex_hex[56..64]);
-        //     // let color_b = parse_f32_le(&vertex_hex[64..72]);
-        //     // let color_a = parse_f32_le(&vertex_hex[72..80]);
-        //
-        //     // 解析 UV (28-36字节)
-        //     let uv_x = parse_f32_le(&vertex_hex[56..64]);
-        //     let uv_y = parse_f32_le(&vertex_hex[64..72]);
-        //
-        // }
-
-        // 移除可能的空格和换行
-        let cleaned = hex_string.replace([' ', '\n', '\r'], "");
-
-        // 解码十六进制字符串为字节
-        let bytes = hex::decode(cleaned).expect("Invalid hex string");
-
-        println!("Vertex sizeof count: {}", size_of);
-
-        match size_of {
-            32 => {
-                // 检查字节数是否是顶点大小的整数倍
-                assert_eq!(bytes.len() % std::mem::size_of::<Vertex>(), 0);
-                let vertices: &[Vertex] = bytemuck::cast_slice(&bytes);
-
-                let mut vertices = vertices.to_vec();
-
-                vertices.iter_mut().for_each(|v| v.flip_z_axis());
-
-                // println!("detect_uv_mapping_32_type(&vertices) :{}", Vertex::detect_uv_mapping_type(&vertices));
-                println!("Vertex sizeof: {} count: {}", size_of, vertices.len());
-                bytemuck::cast_slice(&vertices).to_vec()
-            }
-            56 => {
-                // 检查字节数是否是顶点大小的整数倍
-                assert_eq!(bytes.len() % std::mem::size_of::<VertexTexUvFloat32>(), 0);
-                let vertices: &[VertexTexUvFloat32] = bytemuck::cast_slice(&bytes);
-
-                let mut vertices = vertices.to_vec();
-
-                vertices.iter_mut().for_each(|v| v.flip_z_axis());
-
-                // println!("detect_uv_mapping_32_type(&vertices) :{}", Vertex::detect_uv_mapping_type(&vertices));
-                println!("Vertex sizeof: {} count: {}", size_of, vertices.len());
-                bytemuck::cast_slice(&vertices).to_vec()
-            }
-            36 => {
-                // 检查字节数是否是顶点大小的整数倍
-                assert_eq!(bytes.len() % std::mem::size_of::<VertexColor>(), 0);
-                let vertices: &[VertexColor] = bytemuck::cast_slice(&bytes);
-
-                let mut vertices = vertices.to_vec();
-
-                vertices.iter_mut().for_each(|v| v.flip_z_axis());
-
-                // println!("detect_uv_mapping_32_type(&vertices) :{}", Vertex::detect_uv_mapping_type(&vertices));
-                println!("Vertex sizeof: {} count: {}", size_of, vertices.len());
-                bytemuck::cast_slice(&vertices).to_vec()
-            }
-            40 => {
-                // 检查字节数是否是顶点大小的整数倍
-                assert_eq!(bytes.len() % std::mem::size_of::<VertexUvFloat1632>(), 0);
-                let vertices: &[VertexUvFloat1632] = bytemuck::cast_slice(&bytes);
-
-                let mut vertices = vertices.to_vec();
-
-                vertices.iter_mut().for_each(|v| v.flip_z_axis());
-
-                // println!("detect_uv_mapping_32_type(&vertices) :{}", Vertex::detect_uv_mapping_type(&vertices));
-                println!("Vertex sizeof: {} count: {}", size_of, vertices.len());
-                bytemuck::cast_slice(&vertices).to_vec()
-            }
-            48 => {
-                // 检查字节数是否是顶点大小的整数倍
-                assert_eq!(bytes.len() % std::mem::size_of::<VertexFloat32>(), 0);
-                let vertices: &[VertexFloat32] = bytemuck::cast_slice(&bytes);
-
-                let mut vertices = vertices.to_vec();
-
-                vertices.iter_mut().for_each(|v| v.flip_z_axis());
-
-                // println!("detect_uv_mapping_32_type(&vertices) :{}", Vertex::detect_uv_mapping_type(&vertices));
-                println!("Vertex sizeof: {} count: {}", size_of, vertices.len());
-                bytemuck::cast_slice(&vertices).to_vec()
-            }
-            80 => {
-                // 检查字节数是否是顶点大小的整数倍
-                assert_eq!(bytes.len() % std::mem::size_of::<VertexColorUVx3Float32>(), 0);
-                let vertices: &[VertexColorUVx3Float32] = bytemuck::cast_slice(&bytes);
-
-                let mut vertices = vertices.to_vec();
-
-                vertices.iter_mut().for_each(|v| v.flip_z_axis());
-
-                // println!("detect_uv_mapping_32_type(&vertices) :{}", Vertex::detect_uv_mapping_type(&vertices));
-                println!("Vertex sizeof: {} count: {}", size_of, vertices.len());
-                bytemuck::cast_slice(&vertices).to_vec()
-            }
-            64 => {
-                // 检查字节数是否是顶点大小的整数倍
-                assert_eq!(bytes.len() % std::mem::size_of::<VertexColorUVFloat32>(), 0);
-                let vertices: &[VertexColorUVFloat32] = bytemuck::cast_slice(&bytes);
-
-                let mut vertices = vertices.to_vec();
-
-                vertices.iter_mut().for_each(|v| v.flip_z_axis());
-
-                // println!("detect_uv_mapping_32_type(&vertices) :{}", Vertex::detect_uv_mapping_type(&vertices));
-                println!("Vertex sizeof: {} count: {}", size_of, vertices.len());
-                bytemuck::cast_slice(&vertices).to_vec()
-            }
-            _ => {
-                println!("Vertex _____ sizeof count: {}", size_of);
-                // 检查字节数是否是顶点大小的整数倍
-                assert_eq!(bytes.len() % std::mem::size_of::<Vertex>(), 0);
-                let vertices: &[Vertex] = bytemuck::cast_slice(&bytes);
-
-                let mut vertices = vertices.to_vec();
-
-                vertices.iter_mut().for_each(|v| v.flip_z_axis());
-
-                println!("__ anther Vertex sizeof: {} count: {}", size_of, vertices.len());
-
-                bytemuck::cast_slice(&vertices).to_vec()
-            }
-        }
-
-    }
-
-    fn parse_index_buffer(hex_string: &str) -> Vec<u16> {
-        // 移除空格和换行
-        let cleaned = hex_string.replace([' ', '\n', '\r'], "");
-
-        // 解码十六进制字符串为字节
-        let bytes = hex::decode(cleaned).expect("Invalid hex string");
-        // println!("Index: sizeof {:?}", bytes);
-        // 将字节转换为 u16 索引数组
-        let indices: &[u16] = bytemuck::cast_slice(&bytes);
-
-        indices.to_vec()
-    }
-
-    // 初始化pipeline 以及各类的布局
-    pub async fn from_unity_data(buff: &[u8], id: &MeshId, device: &Device, scene: &Scene, material: &Material, config: &SurfaceConfiguration) -> anyhow::Result<Mesh> {
-        let content = std::str::from_utf8(buff)?;
-        // 获取mesh文件
-        let raw_asset = serde_yaml::from_str::<MeshAsset>(content).map_err(|e| {
-            println!("Failed to parse mesh asset: {:?}", e);
-            e
-        })?;
-        let raw = raw_asset.mesh;
-        let Some(sub_mesh) = raw.sub_mesh.get(0) else {
-            return Err(anyhow::anyhow!("Mesh does not contain sub mesh"));
-        };
-
-        let vertex_descriptors = Self::render_descriptors(raw.vertex_data.m_channels);
-        print!("{:?},", Self::get_vertex_stride(&vertex_descriptors));
-
-        // let vertices = match Self::get_vertex_stride(&vertex_descriptors) {
-        //      32 => {
-        //          let bytes = Mesh::parse_vertex_data::<Vertex>(&raw.vertex_data._type_less_data);
-        //          let vertices: &[Vertex] = load_vertices::<Vertex>(&bytes);
-        //      }
-        //     _ => {
-        //
-        //     }
-        // };
-        // 处理材质数据
-        let size_of = Self::get_vertex_stride(&vertex_descriptors);
-        let vertices = Mesh::parse_vertex_buffer(&raw.vertex_data._type_less_data, &size_of, raw.vertex_data.vertex_count);
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor{
-            label: Some(&format!("Mesh_Vertice: {}", raw.m_name)),
-            contents: bytemuck::cast_slice(&vertices),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-
-        // println!("vertices: {:?}", vertices);
-        let indices = Mesh::parse_index_buffer(&raw.index_buffer);
-        // println!("analyze_uv_pattern_by_normal(&vertices) :{:?}", Vertex::analyze_uv_pattern_by_normal(&vertices, &indices));
-        println!("indices: length {:?},", indices.len());
-
-        // let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor{
-        //     label: Some(&format!("Mesh_Vertice: {}", raw.m_name)),
-        //     contents: bytemuck::cast_slice(&vertices),
-        //     usage: wgpu::BufferUsages::VERTEX,
-        // });
-
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor{
-            label: Some(&format!("Mesh_Index: {}", raw.m_name)),
-            contents: bytemuck::cast_slice(&indices),
-            usage: wgpu::BufferUsages::INDEX,
-        });
-
-        let render_pipeline = Self::create_render_pipeline(device, scene, config, material, &vertex_descriptors, &raw.m_name);
-
-        Ok(Mesh{
-            id: id.clone(),
-            name: format!("Mesh: {}", raw.m_name),
-            vertex_buffer,
-            index_buffer,
-            index_count: sub_mesh.index_count,
-            vertex_count: sub_mesh.vertex_count,
-            vertex_descriptors,
-            render_pipeline,
-        })
-    }
-
-    fn create_render_pipeline(device: &Device, scene: &Scene, config: &SurfaceConfiguration, material: &Material, vertex_descriptors: &Vec<UnityVertexAttributeDescriptor>, label: &String) -> wgpu::RenderPipeline {
-
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
-            label: Some(&format!("Mesh_PipelineLayout: {}", label)),
-            bind_group_layouts: &[
-                // 相机
-                &scene.camera.bind_group_layout,
-                // 环境光 & 背景色
-                &scene.scene_bind_group_layout,
-                // 光照
-                // &scene.light_manager.bind_group_layout,
-                // transforms座标系
-                // &scene.transform_bind_group_layout,
-                
-                &material.bind_group_layout,
-            ],
-            push_constant_ranges: &[],
-        });
-
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
-        });
-
-        let buffer_layout = Self::get_vertex_buffer_layout(&vertex_descriptors);
-
-        let primitive = wgpu::PrimitiveState {
-            // 设置3点成面
-            topology: wgpu::PrimitiveTopology::TriangleList,
-            strip_index_format: None,
-            front_face: wgpu::FrontFace::Cw,
-            cull_mode: Some(wgpu::Face::Back),
-            // cull_mode: None,
-            unclipped_depth: false,
-            polygon_mode: wgpu::PolygonMode::Fill,
-            conservative: false,
-        };
-
-        let multisample = wgpu::MultisampleState {
-            count: 1,
-            mask: !0,
-            alpha_to_coverage_enabled: false,
-        };
-        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
-            label: Some(&format!("Mesh_Pipeline: {}", label)),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState{
-                module: &shader,
-                entry_point: Some("vs_main"),
-                compilation_options: Default::default(),
-                buffers: &[
-                    buffer_layout.as_ref(),
-                    InstanceRaw::desc(),
-                ],
-            },
-            primitive,
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: Texture::DEPTH_FORMAT,
-                depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::Less,  // 近的物体遮挡远的
-                stencil: wgpu::StencilState::default(),
-                bias: wgpu::DepthBiasState::default(),
-            }),
-            multisample,
-            fragment: Some(wgpu::FragmentState{
-                module: &shader,
-                entry_point: Some("fs_main"),
-                compilation_options: Default::default(),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: config.format,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            multiview: None,
-            cache: None,
-        })
-    }
-
-    pub fn get_vertex_stride(vertex_descriptors: &Vec<UnityVertexAttributeDescriptor>) -> wgpu::BufferAddress {
-        vertex_descriptors
-            .iter()
-            .map(|desc| {
-                desc.size_in_bytes() as wgpu::BufferAddress
-            })
-            .sum()
-    }
-
-    pub fn get_vertex_buffer_layout(vertex_descriptors: &Vec<UnityVertexAttributeDescriptor>) -> VertexBufferLayoutOwned {
-        let attributes: Vec<wgpu::VertexAttribute> = vertex_descriptors
-            .iter()
-            .filter_map(|desc| {
-                if let Some(format) = desc.to_wgpu_format(){
-                    let attr = wgpu::VertexAttribute {
-                        offset: desc.offset as wgpu::BufferAddress,
-                        shader_location: desc.shader_location(),
-                        format,
-                    };
-                    Some(attr)
-                } else {
-                    None
-                }
-            }).collect();
-
-        // println!(" Self::attributes: {:?}",  attributes);
-        // println!(" Self::get_vertex_stride(vertex_descriptors): {:?}",  Self::get_vertex_stride(vertex_descriptors));
-        VertexBufferLayoutOwned {
-            array_stride: Self::get_vertex_stride(vertex_descriptors),
-            step_mode: Default::default(),
-            attributes,
-        }
-    }
-
-    pub fn render_descriptors(m_channels: Vec<Channel>) -> Vec<UnityVertexAttributeDescriptor> {
-        // 根据channel 渲染
-        let mut vertex_descriptors: Vec<UnityVertexAttributeDescriptor> = Vec::new();
-        for (i, channel)     in m_channels.iter().enumerate() {
-            vertex_descriptors.push(UnityVertexAttributeDescriptor{
-                attribute: UnityVertexAttribute::from_u8(i as u8),
-                format: UnityVertexFormat::from_u8(channel.format),
-                dimension: channel.dimension,
-                stream: channel.stream,
-                offset: channel.offset,
-            })
-        }
-
-        vertex_descriptors
-    }
-
-
-}
 
 // 可能共享, 管理pipe_line
 pub struct Model{
     pub id: usize,
     pub name: String,
     pub meshs: Vec<Mesh>
-}
-
-impl Model{
-    // pub fn render<'a>(&self, render_pass: &mut wgpu::RenderPass<'a>, transform: &Transform) {
-    //     // 多个mesh进行渲染顶点
-    //     for mesh in &self.meshs {
-    //         render_pass.set_pipeline(&mesh.render_pipeline);
-    //         render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-    //         render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-    //         // 创建pipeline 布局等等，设置buffer之类
-    //         render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
-    //     }
-    // }
 }
 
 #[derive(Debug, Clone)]
@@ -833,7 +494,7 @@ pub struct InstanceRaw {
 }
 
 impl InstanceRaw {
-    fn desc() -> wgpu::VertexBufferLayout<'static> {
+    pub fn desc() -> wgpu::VertexBufferLayout<'static> {
         use std::mem;
         wgpu::VertexBufferLayout {
             array_stride: size_of::<InstanceRaw>() as BufferAddress,
@@ -964,20 +625,27 @@ impl TransformSystem {
     }
 
     // 更新所有Transform
-    pub fn update(&mut self) {
+    pub fn update(&mut self, entity_display_map: &mut HashMap<Entity, bool>) {
         // 找出所有根节点
         let roots: Vec<Entity> = self.local_transforms.keys()
             .filter(|e| !self.parents.contains_key(e))
             .copied()
             .collect();
 
+        println!("all roots: {:?}", roots);
         // 从根节点开始更新, 更新所有的矩阵
         for root in roots {
-            self.update_hierarchy(root, Matrix4::identity());
+            let display = entity_display_map.get(&root).copied().unwrap_or(true);
+            self.update_hierarchy(root, Matrix4::identity(), entity_display_map, display);
         }
     }
 
-    fn update_hierarchy(&mut self, entity: Entity, parent_world: Matrix4<f32>) {
+    fn update_hierarchy(&mut self, entity: Entity, parent_world: Matrix4<f32>, entity_display_map: &mut HashMap<Entity, bool>, show: bool) {
+        // 递归如果父组件隐藏 或当前组件隐藏，则直接隐藏
+        let hidden = !show || !entity_display_map.get(&entity).copied().unwrap_or(true);
+        if hidden {
+            entity_display_map.insert(entity, false);
+        }
         // 获取局部变换
         if let Some(local_transform) = self.local_transforms.get_mut(&entity) {
             local_transform.compute_local_matrix();
@@ -993,7 +661,7 @@ impl TransformSystem {
 
                 for &child in &children_vec {
 
-                    self.update_hierarchy(child, world_matrix);
+                    self.update_hierarchy(child, world_matrix, entity_display_map, !hidden);
                 }
             }
         }

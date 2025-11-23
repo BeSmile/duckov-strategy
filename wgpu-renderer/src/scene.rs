@@ -1,14 +1,13 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::Arc;
 
-use cgmath::{Matrix4, Rotation3, Vector3, Vector4};
+use cgmath::{Matrix4, Vector3, Vector4};
 use wgpu::{Device, Queue, SurfaceConfiguration};
 
 use crate::camera::Camera;
-use crate::entity::{Entity, InstanceRaw, Mesh, Model, Transform, TransformSystem};
+use crate::entity::{Entity, InstanceRaw, Transform, TransformSystem};
 use crate::light::{DirectionalLight, LightManager, PointLight};
-use crate::materials::{Material, Texture};
+use crate::materials::{Texture};
 use crate::resource::{MaterialId, MeshId, ResourceManager, load_binary};
 use crate::utils::get_background_color;
 
@@ -20,6 +19,7 @@ use std::time::Instant;
 use wgpu::util::DeviceExt;
 #[cfg(target_arch = "wasm32")]
 use web_time::Instant;
+use crate::ray::Ray;
 
 pub struct PipelineManager {
     pipelines: HashMap<PipelineId, wgpu::RenderPipeline>,
@@ -44,7 +44,7 @@ pub struct Scene {
     pub background_color: wgpu::Color,
 
     pub entities: Vec<Entity>, // 存档所有的实体类key
-    entity_display_map: HashMap<Entity, bool>,
+    entity_display_map: HashMap<Entity, bool>, // true显示 false不显示
 
     pub scene_bind_group_layout: wgpu::BindGroupLayout,
     scene_uniform_buffer: wgpu::Buffer,
@@ -121,7 +121,7 @@ impl RenderBatchSystem {
                         None
                     }
                 }
-                
+
             }).collect();
 
             if instances.is_empty() {
@@ -297,6 +297,32 @@ impl Scene {
         }
     }
 
+    pub fn pick_entity(&self, ray: &Ray, resource_manager: &ResourceManager) -> Option<(u32, f32)> {
+        let mut closest: Option<(u32, f32)> = None;
+        for entity in &self.entities {
+            let Some(mesh) = resource_manager.get_mesh(entity) else {
+                continue;
+            };
+            let Some(transform) = self.transform_system.get_world_matrix(*entity) else {
+                continue;
+            };
+            // println!("entity: {} mesh: {:?}", entity.id(), mesh.aabb);
+            // Transform AABB to world space (simplified: just offset by position)
+            let world_aabb = mesh.aabb.transform(&transform);
+
+
+            if let Some(distance) = ray.intersect_aabb(world_aabb.min, world_aabb.max) {
+                match closest {
+                    None => closest = Some((entity.id(), distance)),
+                    Some((_, d)) if distance < d => closest = Some((entity.id(), distance)),
+                    _ => {}
+                }
+            }
+        }
+
+        closest
+    }
+
     // 计算对齐后的 uniform 大小（必须是 256 的倍数）
     fn aligned_uniform_size(size: u64) -> u64 {
         let alignment = 256; // wgpu 要求
@@ -316,7 +342,7 @@ impl Scene {
         let transforms = &unity_scene.transforms;
         let mesh_renders = &unity_scene.mesh_renderers;
         let mesh_filters = &unity_scene.mesh_filters;
-        let test_id = 0;
+        let test_id = 19022;
         for (entity_id, game_object) in objects {
             // 查看挂载的transform
             let entity = Entity::new(*entity_id);
@@ -346,7 +372,7 @@ impl Scene {
                             continue;
                         };
                         if *entity_id == test_id {
-                            println!("{}: transform: {:?}", *entity_id, op);
+                            println!("{}: transform: {:?}, gameobject : {:?}", *entity_id, op, &game_object);
                         }
                         // 通过transform查找children上的transform数据，transform对应;
                         local_transform.set_position(&unity_transform.m_local_position);
@@ -405,13 +431,19 @@ impl Scene {
             }
 
             scene.add_entity(entity, local_transform);
-
+            
             let Some(mesh_filter) = unity_mesh_filter else {
                 continue;
             };
             let Some(mesh_mesh_reference) = unity_mesh_render else {
                 continue;
             };
+            // mesh隐藏不加载，地图有隐藏提前加载的物品是unity场景优化部分,存在顶部mesh不渲染，子gameobject渲染，但是实际同一个材质
+            // if mesh_mesh_reference.m_enabled == 0u8 {
+            //     scene.hidden_entity(entity);
+            //     println!("entity mesh_renderer {} 隐藏: {:?}", game_object.m_name, entity);
+            //     continue;
+            // }
             // 材质球
             let Some(mesh_render) = mesh_mesh_reference.m_children.get(0) else {
                 continue;
@@ -425,7 +457,7 @@ impl Scene {
 
             resource_manager
                 .load_mesh(
-                    &mesh_filter.m_mesh.guid,
+                    &mesh_filter.m_mesh,
                     entity,
                     device,
                     scene,
@@ -435,12 +467,14 @@ impl Scene {
                 .await?;
         }
 
-        scene.transform_system.update();
+        scene.transform_system.update(&mut scene.entity_display_map);
         scene.render_batches.rebuild_batches(
             &scene.entities,
             &scene.entity_display_map,
-            &resource_manager,
+            resource_manager,
         );
+        println!("scene rendered all {} entities", scene.entities.len());
+        println!("scene actually rendered all {} entities", scene.total_show_entities());
 
         Ok(())
     }
@@ -452,6 +486,11 @@ impl Scene {
 
     pub fn hidden_entity(&mut self, entity: Entity) {
         self.entity_display_map.insert(entity, false);
+    }
+    
+    // 查看是否显示
+    pub fn is_display(&self, entity: &Entity) -> &bool {
+        self.entity_display_map.get(entity).unwrap_or(&true)
     }
 
     pub fn add_pipelines(&mut self, pipeline_id: PipelineId, pipeline: wgpu::RenderPipeline) {
@@ -550,6 +589,14 @@ impl Scene {
     //         }
     //     }
     // }
+
+    fn total_show_entities(&self) -> usize {
+        // println!("total_show_entities: {:?}", &self.entity_display_map);
+        self.entities.len() - self.entity_display_map
+            .iter()
+            .filter(|&(_, display)| *display == false)
+        .count()
+    }
 
     pub fn render<'a>(
         &'a mut self,

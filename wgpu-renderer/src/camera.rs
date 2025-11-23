@@ -13,6 +13,9 @@ pub struct CameraController {
     // 向上
     is_space_pressed: bool,
     is_shift_left_pressed: bool,
+    // 缩放相关
+    zoom_delta: f32,
+    zoom_speed: f32,
 }
 
 impl CameraController {
@@ -26,6 +29,8 @@ impl CameraController {
             is_right_pressed: false,
             is_space_pressed: false,
             is_shift_left_pressed: false,
+            zoom_delta: 0.0,
+            zoom_speed: 0.1, // 缩放速度
         }
     }
 
@@ -59,6 +64,14 @@ impl CameraController {
         }
     }
 
+    /// 处理鼠标滚轮缩放事件
+    /// delta > 0: 放大 (向前滚动/双指向上滑动)
+    /// delta < 0: 缩小 (向后滚动/双指向下滑动)
+    pub fn handle_scroll(&mut self, delta: f32) {
+        // 累积滚轮增量
+        self.zoom_delta += delta * self.zoom_speed;
+    }
+
     pub fn update_camera(&mut self, eye: &mut Point3<f32>, target: &mut Point3<f32>, up: Vector3<f32>) {
         use cgmath::InnerSpace;
 
@@ -66,7 +79,7 @@ impl CameraController {
         let forward_norm = forward.normalize(); // 归一化
         // let forward_mag = forward_norm.magnitude(); // 分量
 
-        let speed = if self.is_shift_left_pressed { 
+        let speed = if self.is_shift_left_pressed {
             self.speed * 1.5
         } else {
             self.speed
@@ -99,6 +112,22 @@ impl CameraController {
         if self.is_right_pressed {
             // 每次操作变量都是基于target进行向量操作
             *eye = *target - (forward + right * speed).normalize() * forward_mag;
+        }
+
+        // 处理缩放：调整相机到目标点的距离
+        if self.zoom_delta.abs() > 0.001 {
+            let forward = *target - *eye;
+            let forward_norm = forward.normalize();
+            let mut new_distance = forward.magnitude() - self.zoom_delta;
+
+            // 限制最小和最大缩放距离
+            new_distance = new_distance.max(0.5).min(500.0);
+
+            // 更新相机位置，保持朝向target
+            *eye = *target - forward_norm * new_distance;
+
+            // 重置缩放增量
+            self.zoom_delta = 0.0;
         }
     }
 }
@@ -197,11 +226,14 @@ impl Camera {
         Matrix4::look_at_rh(self.eye, self.target, self.up)
     }
 
-    pub fn get_projection_matrix(&self) -> Matrix4<f32> {
-        // 投影矩阵
-        let proj = cgmath::perspective(cgmath::Deg(self.fov), self.aspect, self.near, self.far);
+    // 获取纯投影矩阵（用于射线投射等）
+    pub fn get_projection_only(&self) -> Matrix4<f32> {
+        cgmath::perspective(cgmath::Deg(self.fov), self.aspect, self.near, self.far)
+    }
 
-        proj * self.get_view_matrix()
+    pub fn get_projection_matrix(&self) -> Matrix4<f32> {
+        // 投影矩阵 * 视图矩阵（用于shader）
+        self.get_projection_only() * self.get_view_matrix()
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
