@@ -4,7 +4,7 @@ use cfg_if::cfg_if;
 use log::info;
 use serde::{Deserialize, Serialize};
 use wgpu::{Device, Queue, TextureView};
-use crate::resource::{load_binary, MaterialId, ResourceManager};
+use crate::resource::{MaterialId, ResourceManager};
 use crate::unity::{Color, TextureReference, UnityReference};
 use crate::utils::get_block_mesh;
 
@@ -482,7 +482,7 @@ pub struct TextureProperty {
     #[serde(rename = "m_Scale")]
     pub scale: cgmath::Vector2<f32>,
     #[serde(rename = "m_Offset")]
-    pub offset: cgmath::Vector2<u8>,
+    pub offset: cgmath::Vector2<f32>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -511,6 +511,7 @@ pub struct Colors{
 pub struct SavedProperties {
     #[serde(rename = "serializedVersion")]
     pub serialized_version: i32,
+    // MAT_ElectricControlBox 材质球是序列的，手动修复
     #[serde(rename = "m_TexEnvs")]
     pub tex_envs: TexEnvs,
     #[serde(rename = "m_Ints")]

@@ -2,9 +2,8 @@ use std::collections::HashMap;
 use cgmath::{Matrix4, One, Point3, Quaternion, SquareMatrix, Transform as CgmathTransform, Vector3, Zero};
 use half::f16;
 use wgpu::{BufferAddress, Device, Queue, SurfaceConfiguration};
-use crate::materials::{Texture};
 use crate::mesh::Mesh;
-use crate::unity::{MeshAsset, UnityVertexAttribute, UnityVertexAttributeDescriptor, UnityVertexFormat};
+use crate::unity::{UnityVertexAttribute, UnityVertexAttributeDescriptor, UnityVertexFormat};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -48,6 +47,18 @@ pub struct VertexColorUVx3Float32 {    // sizeof 80
     tex_coords: [f32; 2],// uv0坐标
     uv_coords: [f32; 2],// uv1坐标
     uv1_coords: [f32; 2],// uv2坐标
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct VertexFloat32x6 {    // sizeof 88
+    position: [f32; 3],
+    normal: [f32; 3], // 法线
+    // 切线
+    tangent: [f32; 4],
+    color: [f32; 4],
+    tex_coords: [f32; 4],// uv0坐标
+    uv_coords: [f32; 4],// uv1坐标
 }
 
 #[repr(C)]
@@ -247,6 +258,33 @@ impl IVertex for VertexColorUVx3Float32 {
         // 使用fract()获取小数部分，映射到[0,1]
         self.uv1_coords[0] = u2.fract().abs();
         self.uv1_coords[1] = v2.fract().abs();
+    }
+}
+impl IVertex for VertexFloat32x6 {
+    fn flip_z_axis(&mut self) {
+        // 翻转Z轴（位置）
+        self.position[2] = -self.position[2];
+        // 翻转法线Z
+        self.normal[2] = -self.normal[2];
+
+        // 翻转切线Z和手性
+        self.tangent[2] = -self.tangent[2];
+        self.tangent[3] = -self.tangent[3];
+
+        let u = self.tex_coords[0];
+        let v = self.tex_coords[1];
+
+        // 使用fract()获取小数部分，映射到[0,1]
+        self.tex_coords[0] = u.fract().abs();
+        self.tex_coords[1] = v.fract().abs();
+        
+        // todo uv 4个如何处理？
+        let u1 = self.tex_coords[0];
+        let v1 = self.tex_coords[1];
+
+        // 使用fract()获取小数部分，映射到[0,1]
+        self.uv_coords[0] = u1.fract().abs();
+        self.uv_coords[1] = v1.fract().abs();
     }
 }
 

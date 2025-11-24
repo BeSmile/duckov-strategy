@@ -1,14 +1,8 @@
 use serde::{de, Deserialize, Deserializer, Serialize};
-use serde_yaml::Value;
 use std::collections::{HashMap, HashSet};
-use std::fmt::Write;
-use std::{fmt, fs};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::{fs};
 use std::path::PathBuf;
 use cgmath::{Point3, Vector3};
-use serde::de::Visitor;
-use wgpu::VertexAttribute;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Component {
@@ -373,23 +367,28 @@ impl UnityScene {
         }
     }
     // 从str返回一个Unity场景对象，多个Object，解析.unity
-    pub fn from_str(&mut self, file_path: PathBuf) -> anyhow::Result<Self> {
+    pub async fn from_str(&mut self, file_path: PathBuf) -> anyhow::Result<Self> {
         let mut start: bool = false;
         let mut content = String::new();
         let mut old_component_id: u32 = 0;
         // 场景资源
         let mut unity_scene = UnityScene::new();
+        
+        use crate::resource::{ResourceManager};
 
-        let file = File::open(file_path)?;
+        // 根据平台使用不同的加载方式
+        let bytes = ResourceManager::load_binary(&file_path.to_str().unwrap()).await?;
+
+        let file_content = String::from_utf8(bytes)?;
+
         let mut deleted_ids:HashSet<u32> = HashSet::new();
 
         // let mut mapping_objects: HashMap<i32, GameObject> = HashMap::new();
 
-        let buffer = BufReader::new(file);
+        let lines: Vec<&str> = file_content.lines().collect();
 
         let debug_id = 0;
-        for line_result in buffer.lines() {
-            let line = line_result?;
+        for line in lines {
             // --- 开始追加捕获
             if line.starts_with("---") {
                 start = true;
@@ -567,8 +566,7 @@ impl UnityScene {
         }
 
         // 清洗数据，包含light等都要清洗
-
-        fs::write("./save_j_lab_2.json", serde_json::to_string_pretty(&unity_scene).unwrap())?;
+        // fs::write("./save_j_lab_2.json", serde_json::to_string_pretty(&unity_scene).unwrap())?;
 
         Ok(unity_scene)
     }

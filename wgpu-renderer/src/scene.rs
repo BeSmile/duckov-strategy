@@ -8,7 +8,7 @@ use crate::camera::Camera;
 use crate::entity::{Entity, InstanceRaw, Transform, TransformSystem};
 use crate::light::{DirectionalLight, LightManager, PointLight};
 use crate::materials::{Texture};
-use crate::resource::{MaterialId, MeshId, ResourceManager, load_binary};
+use crate::resource::{MaterialId, MeshId, ResourceManager};
 use crate::utils::get_background_color;
 
 pub type PipelineId = String;

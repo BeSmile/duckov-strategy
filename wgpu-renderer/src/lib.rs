@@ -26,11 +26,9 @@ use crate::resource::{ResourceManager};
 use crate::scene::{Scene};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
-use wgpu::QuerySet;
-use wgpu::wgc::command::QueryError;
 use winit::dpi::PhysicalSize;
 use winit::window::WindowId;
-use crate::entity::{Entity, Model, TransformSystem, Vertex};
+use crate::entity::{Entity, TransformSystem, Vertex};
 use crate::materials::{Texture};
 use crate::ray::Ray;
 use crate::unity::UnityScene;
@@ -62,6 +60,7 @@ impl State {
                 size.height.max(1)
             )
         };
+        
         // 获得Instance面板
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             #[cfg(not(target_arch = "wasm32"))]
@@ -90,7 +89,7 @@ impl State {
         if features.contains(wgpu::Features::TIMESTAMP_QUERY) {
             println!("Adapter supports timestamp queries.");
         } else {
-            panic!("Adapter does not support timestamp queries, aborting.");
+            println!("Adapter does not support timestamp queries, aborting.");
         }
         // if !features.contains(wgpu::Features::SHADER_F16) {
         //     panic!("设备不支持 SHADER_F16 特性");
@@ -150,11 +149,23 @@ impl State {
         };
 
         let mut uns = UnityScene::new();
-        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_JLab/Level_JLab_2.unity");
+        // 做场景资源转换，所需资源
+        #[cfg(not(target_arch = "wasm32"))]
+        // let path = PathBuf::from("Scenes/Level_JLab/Level_JLab_2.unity");
         // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_GroundZero/Level_GroundZero_1.unity");
-        let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_JLab/Level_JLab_1.unity");
+        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Base_SceneV2_Sub_01.unity");
+        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Base_SceneV2.unity");// 需要处理球体 10207特殊情况 x 未完成
+        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_JLab/Level_JLab_2.unity");
+        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_JLab/Level_JLab_1.unity");
+        let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_HiddenWarehouse/Level_HiddenWarehouse.unity");
+        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_OpenWorldTest/Level_Farm_01.unity");
+        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_StormZone/Level_StormZone_1.unity");
+        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_StormZone/Level_StormZone_B4.unity");
+        // let path = PathBuf::from("Scenes/Level_GroundZero/Level_GroundZero_Cave.unity");
+        #[cfg(target_arch = "wasm32")]
+        let path = PathBuf::from("Scenes/Level_JLab/Level_JLab_2.unity");
 
-        let mut unity_scene = uns.from_str(path)?;
+        let mut unity_scene = uns.from_str(path).await?;
 
         let mut scene = Scene::new(&device, &config, unity_scene.game_object.len() * 2);
         let mut resource_manager = ResourceManager::new(&device, &queue);
@@ -395,6 +406,23 @@ impl ApplicationHandler<State> for App {
         self.state = Some(event);
     }
 
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: DeviceId,
+        event: DeviceEvent,
+    ) {
+        let state = match &mut self.state {
+            Some(s) => s,
+            None => return,
+        };
+
+        // 处理鼠标移动（用于FPS相机控制）
+        if let DeviceEvent::MouseMotion { delta } = event {
+            state.scene.camera.controller.handle_mouse_move(delta.0 as f32, delta.1 as f32);
+        }
+    }
+
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
@@ -451,9 +479,42 @@ impl ApplicationHandler<State> for App {
             WindowEvent::CursorMoved { position, .. } => {
                 state.mouse_pos = (position.x as f32, position.y as f32);
             }
-            WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
-                let size = state.window.inner_size();
-                state.on_click(&state.scene, size,);
+            WindowEvent::MouseInput { state: button_state, button, .. } => {
+                match (button, button_state) {
+                    // 左键点击：选取实体
+                    (MouseButton::Left, ElementState::Pressed) => {
+                        let size = state.window.inner_size();
+                        state.on_click(&state.scene, size);
+                    }
+                    // 右键点击：切换FPS模式
+                    (MouseButton::Right, ElementState::Pressed) => {
+                        state.scene.camera.controller.toggle_mouse_capture();
+
+                        // 如果进入FPS模式，初始化yaw和pitch角度
+                        if state.scene.camera.controller.is_mouse_captured() {
+                            let eye = state.scene.camera.eye().clone();
+                            let target = state.scene.camera.target().clone();
+                            state.scene.camera.controller.init_angles_from_target(
+                                &eye,
+                                &target,
+                            );
+
+                            // 锁定并隐藏鼠标
+                            state.window.set_cursor_visible(false);
+                            let _ = state.window.set_cursor_grab(winit::window::CursorGrabMode::Confined)
+                                .or_else(|_| state.window.set_cursor_grab(winit::window::CursorGrabMode::Locked));
+
+                            println!("FPS mode enabled - Mouse locked");
+                        } else {
+                            // 解锁并显示鼠标
+                            state.window.set_cursor_visible(true);
+                            let _ = state.window.set_cursor_grab(winit::window::CursorGrabMode::None);
+
+                            println!("FPS mode disabled - Mouse unlocked");
+                        }
+                    }
+                    _ => {}
+                }
             }
             _ => {}
         }

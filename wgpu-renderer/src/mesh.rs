@@ -1,7 +1,7 @@
 use cgmath::{Matrix4, Point3, Transform};
 use wgpu::{BufferAddress, Device, SurfaceConfiguration};
 use wgpu::util::DeviceExt;
-use crate::entity::{InstanceRaw, IVertex, Vertex, VertexBufferLayoutOwned, VertexColor, VertexColorFloat3x4U8, VertexColorUVFloat32, VertexColorUVx3Float32, VertexFloat32, VertexTexUvFloat32, VertexUvFloat1632, VertexFloat16x4Float};
+use crate::entity::{InstanceRaw, IVertex, Vertex, VertexBufferLayoutOwned, VertexColor, VertexColorFloat3x4U8, VertexColorUVFloat32, VertexColorUVx3Float32, VertexFloat32, VertexTexUvFloat32, VertexUvFloat1632, VertexFloat16x4Float, VertexFloat32x6};
 use crate::materials::{Material, Texture};
 use crate::resource::MeshId;
 use crate::scene::Scene;
@@ -94,6 +94,8 @@ pub struct Mesh{
     pub aabb: AABB,
 }
 
+// todo 处理mesh多个材质 HiddenWarehouse场景下 SM_House_03_Roof1 物体
+// -[ ] 处理材质颜色的问题
 impl Mesh{
     // 转换并反转缠绕顺序
     // pub fn parse_index_buffer(hex_string: &str) -> Vec<u32> {
@@ -264,6 +266,19 @@ impl Mesh{
                 // 检查字节数是否是顶点大小的整数倍
                 assert_eq!(bytes.len() % std::mem::size_of::<VertexColorUVFloat32>(), 0);
                 let vertices: &[VertexColorUVFloat32] = bytemuck::cast_slice(&bytes);
+
+                let mut vertices = vertices.to_vec();
+
+                vertices.iter_mut().for_each(|v| v.flip_z_axis());
+
+                // println!("detect_uv_mapping_32_type(&vertices) :{}", Vertex::detect_uv_mapping_type(&vertices));
+                println!("Vertex sizeof: {} count: {}", size_of, vertices.len());
+                bytemuck::cast_slice(&vertices).to_vec()
+            }
+            88 => {
+                // 检查字节数是否是顶点大小的整数倍
+                assert_eq!(bytes.len() % std::mem::size_of::<VertexFloat32x6>(), 0);
+                let vertices: &[VertexFloat32x6] = bytemuck::cast_slice(&bytes);
 
                 let mut vertices = vertices.to_vec();
 
