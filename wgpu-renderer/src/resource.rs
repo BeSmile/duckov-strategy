@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::{env, fs};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use log::{info};
 use wgpu::{Device, Queue, SurfaceConfiguration};
 use crate::entity::{Entity};
 use crate::materials::{Material, Texture};
@@ -9,6 +10,12 @@ use crate::mesh::Mesh;
 use crate::scene::Scene;
 use crate::unity::UnityReference;
 
+#[cfg(target_arch = "wasm32")]
+use web_sys::{
+    FileSystemDirectoryHandle, FileSystemFileHandle,
+    FileSystemGetDirectoryOptions, FileSystemGetFileOptions,
+    FileSystemWritableFileStream,
+};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::*;
 #[cfg(target_arch = "wasm32")]
@@ -22,96 +29,149 @@ fn format_url(file_name: &str) -> reqwest::Url {
     let location = window.location();
     let base = reqwest::Url::parse(&format!(
         "{}/",
-        "http://localhost/duckov",
+        "http://localhost:8000",
     )).unwrap();
     base.join(file_name).unwrap()
 }
 
 // OPFS 缓存辅助函数 (仅用于 wasm32)
 #[cfg(target_arch = "wasm32")]
-async fn get_from_opfs(file_name: &str) -> Option<Vec<u8>> {
-    use wasm_bindgen::JsValue;
-    use wasm_bindgen_futures::JsFuture;
-    use js_sys::{Uint8Array, ArrayBuffer};
-
-    let navigator = web_sys::window()?.navigator();
-    let storage = js_sys::Reflect::get(&navigator, &JsValue::from_str("storage")).ok()?;
+async fn get_from_opfs(path: &str) -> Option<Vec<u8>> {
+    let window = web_sys::window()?;
+    let navigator = window.navigator();
+    let storage = navigator.storage();
 
     // 获取 OPFS 根目录
-    let get_directory = js_sys::Reflect::get(&storage, &JsValue::from_str("getDirectory")).ok()?;
-    let get_directory_fn = get_directory.dyn_ref::<js_sys::Function>()?;
-    let root_promise = get_directory_fn.call0(&storage).ok()?;
-    let root_result = JsFuture::from(js_sys::Promise::from(root_promise)).await.ok()?;
+    let root_promise = storage.get_directory();
+    let root_dir: FileSystemDirectoryHandle =
+        JsFuture::from(root_promise).await.ok()?.dyn_into().ok()?;
+
+    // 分割路径，处理子目录
+    let parts: Vec<&str> = path.split('/').collect();
+
+    let (dir, filename) = if parts.len() > 1 {
+        // 有子目录，逐级进入
+        let mut current_dir = root_dir;
+
+        for dir_name in &parts[..parts.len()-1] {
+            let dir_promise = current_dir.get_directory_handle(dir_name);
+            current_dir = JsFuture::from(dir_promise)
+                .await
+                .ok()?
+                .dyn_into()
+                .ok()?;
+        }
+
+        (current_dir, *parts.last()?)
+    } else {
+        // 直接在根目录
+        (root_dir, path)
+    };
 
     // 获取文件句柄
-    let get_file = js_sys::Reflect::get(&root_result, &JsValue::from_str("getFileHandle")).ok()?;
-    let get_file_fn = get_file.dyn_ref::<js_sys::Function>()?;
-    let file_promise = get_file_fn.call1(&root_result, &JsValue::from_str(file_name)).ok()?;
-    let file_handle = JsFuture::from(js_sys::Promise::from(file_promise)).await.ok()?;
+    let file_promise = dir.get_file_handle(filename);
+    let file_handle: FileSystemFileHandle =
+        JsFuture::from(file_promise).await.ok()?.dyn_into().ok()?;
 
     // 获取文件对象
-    let get_file_obj = js_sys::Reflect::get(&file_handle, &JsValue::from_str("getFile")).ok()?;
-    let get_file_obj_fn = get_file_obj.dyn_ref::<js_sys::Function>()?;
-    let file_obj_promise = get_file_obj_fn.call0(&file_handle).ok()?;
-    let file_obj = JsFuture::from(js_sys::Promise::from(file_obj_promise)).await.ok()?;
+    let file_promise = file_handle.get_file();
+    let file: web_sys::File =
+        JsFuture::from(file_promise).await.ok()?.dyn_into().ok()?;
 
-    // 读取文件内容为 ArrayBuffer
-    let array_buffer = js_sys::Reflect::get(&file_obj, &JsValue::from_str("arrayBuffer")).ok()?;
-    let array_buffer_fn = array_buffer.dyn_ref::<js_sys::Function>()?;
-    let buffer_promise = array_buffer_fn.call0(&file_obj).ok()?;
-    let buffer = JsFuture::from(js_sys::Promise::from(buffer_promise)).await.ok()?;
+    // 读取为 ArrayBuffer
+    let buffer_promise = file.array_buffer();
+    let buffer = JsFuture::from(buffer_promise).await.ok()?;
 
     // 转换为 Vec<u8>
-    let array = Uint8Array::new(&buffer);
+    let array = js_sys::Uint8Array::new(&buffer);
     Some(array.to_vec())
 }
 
 #[cfg(target_arch = "wasm32")]
-async fn save_to_opfs(file_name: &str, data: &[u8]) -> Option<()> {
-    use wasm_bindgen::JsValue;
-    use wasm_bindgen_futures::JsFuture;
-    use js_sys::Uint8Array;
-
-    let navigator = web_sys::window()?.navigator();
-    let storage = js_sys::Reflect::get(&navigator, &JsValue::from_str("storage")).ok()?;
+pub async fn save_to_opfs(path: &str, data: &[u8]) -> Result<(), JsValue> {
+    let window = web_sys::window().ok_or("no window")?;
+    let navigator = window.navigator();
+    let storage = navigator.storage();
 
     // 获取 OPFS 根目录
-    let get_directory = js_sys::Reflect::get(&storage, &JsValue::from_str("getDirectory")).ok()?;
-    let get_directory_fn = get_directory.dyn_ref::<js_sys::Function>()?;
-    let root_promise = get_directory_fn.call0(&storage).ok()?;
-    let root_result = JsFuture::from(js_sys::Promise::from(root_promise)).await.ok()?;
+    let root_promise = storage.get_directory();
+    let root_dir: FileSystemDirectoryHandle =
+        JsFuture::from(root_promise).await?.dyn_into()?;
 
-    // 创建或获取文件句柄
-    let options = js_sys::Object::new();
-    js_sys::Reflect::set(&options, &JsValue::from_str("create"), &JsValue::from_bool(true)).ok()?;
+    // 分割路径
+    let parts: Vec<&str> = path.split('/').collect();
 
-    let get_file = js_sys::Reflect::get(&root_result, &JsValue::from_str("getFileHandle")).ok()?;
-    let get_file_fn = get_file.dyn_ref::<js_sys::Function>()?;
-    let file_promise = get_file_fn.call2(&root_result, &JsValue::from_str(file_name), &options).ok()?;
-    let file_handle = JsFuture::from(js_sys::Promise::from(file_promise)).await.ok()?;
+    if parts.len() > 1 {
+        // 递归创建子目录
+        let mut current_dir = root_dir;
 
-    // 创建可写流
-    let create_writable = js_sys::Reflect::get(&file_handle, &JsValue::from_str("createWritable")).ok()?;
-    let create_writable_fn = create_writable.dyn_ref::<js_sys::Function>()?;
-    let writable_promise = create_writable_fn.call0(&file_handle).ok()?;
-    let writable = JsFuture::from(js_sys::Promise::from(writable_promise)).await.ok()?;
+        for dir_name in &parts[..parts.len()-1] {
+            let mut options = FileSystemGetDirectoryOptions::new();
+            options.set_create(true);
 
-    // 写入数据
-    let uint8_array = Uint8Array::from(data);
-    let write = js_sys::Reflect::get(&writable, &JsValue::from_str("write")).ok()?;
-    let write_fn = write.dyn_ref::<js_sys::Function>()?;
-    let write_promise = write_fn.call1(&writable, &uint8_array).ok()?;
-    JsFuture::from(js_sys::Promise::from(write_promise)).await.ok()?;
+            // 注意：这里返回的是 Promise，需要转换
+            let dir_promise = current_dir
+                .get_directory_handle_with_options(dir_name, &options);
 
-    // 关闭流
-    let close = js_sys::Reflect::get(&writable, &JsValue::from_str("close")).ok()?;
-    let close_fn = close.dyn_ref::<js_sys::Function>()?;
-    let close_promise = close_fn.call0(&writable).ok()?;
-    JsFuture::from(js_sys::Promise::from(close_promise)).await.ok()?;
+            // 将 Promise 转为 JsFuture 然后 await
+            current_dir = JsFuture::from(dir_promise)
+                .await
+                .map_err(|e| {
+                    error!("Failed to create directory '{}': {:?}", dir_name, e);
+                    e
+                })?
+                .dyn_into::<FileSystemDirectoryHandle>()?;
+        }
 
-    Some(())
+        // 在最终目录创建文件
+        let filename = parts.last().unwrap();
+        save_file_in_dir(&current_dir, filename, data).await?;
+    } else {
+        // 直接在根目录创建
+        save_file_in_dir(&root_dir, path, data).await?;
+    }
+
+    Ok(())
 }
 
+#[cfg(target_arch = "wasm32")]
+async fn save_file_in_dir(
+    dir: &FileSystemDirectoryHandle,
+    filename: &str,
+    data: &[u8]
+) -> Result<(), JsValue> {
+    // 创建文件选项
+    let mut file_options = FileSystemGetFileOptions::new();
+    file_options.set_create(true);
+
+    // 获取文件句柄 - 注意这里也返回 Promise
+    let file_promise = dir.get_file_handle_with_options(filename, &file_options);
+    let file_handle: FileSystemFileHandle =
+        JsFuture::from(file_promise)
+            .await
+            .map_err(|e| {
+                error!("Failed to get file handle for '{}': {:?}", filename, e);
+                e
+            })?
+            .dyn_into()?;
+
+    // 创建可写流
+    let writable_promise = file_handle.create_writable();
+    let writable: FileSystemWritableFileStream =
+        JsFuture::from(writable_promise).await?.dyn_into()?;
+
+    // 写入数据
+    let array = js_sys::Uint8Array::from(data);
+    let write_promise = writable.write_with_buffer_source(&array)?;  // 先解包 Result
+    JsFuture::from(write_promise).await?;  // 现在 write_promise 是 Promise
+
+    // 关闭流
+    let close_promise = writable.close();
+    JsFuture::from(close_promise).await?;
+
+    info!("Successfully saved: {}", filename);
+    Ok(())
+}
 
 #[cfg(not(target_arch = "wasm32"))]
 fn transfer_file(file_path: &str)  -> anyhow::Result<Vec<u8>> {
@@ -175,8 +235,13 @@ impl ResourceManager {
     }
     
     pub async fn loading_mapping(&mut self) -> anyhow::Result<()>{
+        // todo 优化部分
+        #[cfg(target_arch = "wasm32")]
+        let guids = Self::load_binary("guid.json").await?;
+        #[cfg(not(target_arch = "wasm32"))]
         let guids = Self::load_binary("guid_full.json").await?;
-        self.manifest = serde_json::from_str(std::str::from_utf8(&guids)?)?;  
+
+        self.manifest = serde_json::from_str(std::str::from_utf8(&guids)?)?;
         Ok(())
     }
 
@@ -186,11 +251,11 @@ impl ResourceManager {
         let data = {
             // 首先尝试从 OPFS 缓存读取
             if let Some(cached_data) = get_from_opfs(file_name).await {
-                println!("Loaded from OPFS cache: {}", file_name);
+                info!("Loaded from OPFS cache: {}", file_name);
                 cached_data
             } else {
                 // 如果缓存不存在，从网络获取
-                println!("Fetching from network: {}", file_name);
+                info!("Fetching from network: {}", file_name);
                 let url = format_url(file_name);
                 let response_data = reqwest::get(url).await?.bytes().await?.to_vec();
 
@@ -198,10 +263,10 @@ impl ResourceManager {
                 let data_clone = response_data.clone();
                 let file_name_clone = file_name.to_string();
                 wasm_bindgen_futures::spawn_local(async move {
-                    if save_to_opfs(&file_name_clone, &data_clone).await.is_some() {
-                        println!("Saved to OPFS cache: {}", file_name_clone);
+                    if save_to_opfs(&file_name_clone, &data_clone).await.is_ok() {
+                        info!("Saved to OPFS cache: {}", file_name_clone);
                     } else {
-                        println!("Failed to save to OPFS cache: {}", file_name_clone);
+                        info!("Failed to save to OPFS cache: {}", file_name_clone);
                     }
                 });
 
@@ -212,7 +277,7 @@ impl ResourceManager {
         let data = {
             let path = Path::new(env!("OUT_DIR")).join("res").join(file_name);
             fs::read(path.clone()).map_err(|e| {
-                println!("Loaded binary filename: {}, origin_path: {:?}, path: {:?}", file_name, &path.to_str(), Path::new(env!("OUT_DIR")).join("res").join(file_name));
+                info!("Loaded binary filename: {}, origin_path: {:?}, path: {:?}", file_name, &path.to_str(), Path::new(env!("OUT_DIR")).join("res").join(file_name));
                 e
             })?
         };
