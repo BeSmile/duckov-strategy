@@ -130,6 +130,7 @@ export default async function RootLayout({
                     defaultTheme="system"
                     enableSystem
                     disableTransitionOnChange
+                    themes={['light', 'dark', 'cassette']}
                 >
                     <NextIntlClientProvider locale={locale} messages={messages}>
                         <Header locale={locale as Language} />

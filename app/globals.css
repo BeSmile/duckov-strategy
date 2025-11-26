@@ -129,6 +129,106 @@ body {
 
 /*---break---*/
 
+.cassette {
+    /* Cassette Futurism Theme - 70s-80s Analog Tech Aesthetic */
+    /* Dark plastic chassis colors */
+    --background: #1a1a1a;
+    --foreground: #33ff00;
+
+    /* Beige/grey plastic panels */
+    --card: #3a3a36;
+    --card-foreground: #33ff00;
+    --popover: #2a2a26;
+    --popover-foreground: #ffaa00;
+
+    /* Amber LED display colors */
+    --primary: #ffaa00;
+    --primary-foreground: #1a1a1a;
+
+    /* Grey button/panel colors */
+    --secondary: #4a4a46;
+    --secondary-foreground: #ffaa00;
+    --muted: #2a2a26;
+    --muted-foreground: #888880;
+
+    /* Green phosphor accent */
+    --accent: #33ff00;
+    --accent-foreground: #1a1a1a;
+
+    /* Red error LED */
+    --destructive: #ff3300;
+
+    /* Metal and plastic edges */
+    --border: #555550;
+    --input: #3a3a36;
+    --ring: #33ff00;
+
+    /* VU meter colors */
+    --chart-1: #33ff00;
+    --chart-2: #ffaa00;
+    --chart-3: #ff6600;
+    --chart-4: #ff3300;
+    --chart-5: #00ff88;
+
+    /* Sidebar panel colors */
+    --sidebar: #2a2a26;
+    --sidebar-foreground: #33ff00;
+    --sidebar-primary: #ffaa00;
+    --sidebar-primary-foreground: #1a1a1a;
+    --sidebar-accent: #3a3a36;
+    --sidebar-accent-foreground: #33ff00;
+    --sidebar-border: #555550;
+    --sidebar-ring: #33ff00;
+
+}
+
+/* Cassette-specific effects - only apply when cassette theme is active */
+html.cassette body {
+    background: #1a1a1a;
+    text-shadow: 0 0 8px currentColor;
+    font-family: 'Courier New', 'Consolas', monospace;
+    letter-spacing: 0.05em;
+}
+
+/* CRT scanline effect */
+html.cassette body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        repeating-linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.15),
+            rgba(0, 0, 0, 0.15) 1px,
+            transparent 1px,
+            transparent 2px
+        );
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* CRT screen glow effect */
+html.cassette body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(51, 255, 0, 0.03) 0%,
+        transparent 60%
+    );
+    pointer-events: none;
+    z-index: 9998;
+}
+
+/*---break---*/
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

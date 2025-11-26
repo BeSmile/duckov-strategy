@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import LanguageSwitcher from './LanguageSwitcher';
+import ThemeSwitcher from './ThemeSwitcher';
 import { LocaleLink } from '@/app/components/ClientProxy';
 import { Language } from '@/app/i18n/config';
 
@@ -42,7 +43,7 @@ export default function Header({ locale }: HeaderProps) {
                         </div>
                     </LocaleLink>
 
-                    {/* Navigation Links & Language Switcher */}
+                    {/* Navigation Links, Theme Switcher & Language Switcher */}
                     <div className="flex items-center gap-4">
                         {/* gap-1 会导致 lg:flex失效 */}
                         <div className="hidden lg:flex items-center">
@@ -61,6 +62,7 @@ export default function Header({ locale }: HeaderProps) {
                                 </LocaleLink>
                             ))}
                         </div>
+                        <ThemeSwitcher />
                         <LanguageSwitcher locale={locale} />
                     </div>
                 </div>
