@@ -9,8 +9,9 @@ mod entity;
 mod queries;
 mod ray;
 mod mesh;
+mod map;
 
-use log::info;
+use log::{error, info, warn};
 use std::path::PathBuf;
 use std::sync::Arc;
 use winit::{
@@ -28,10 +29,15 @@ use crate::scene::{Scene};
 use wasm_bindgen::prelude::*;
 use winit::dpi::PhysicalSize;
 use winit::window::WindowId;
-use crate::entity::{Entity, TransformSystem, Vertex};
+use crate::entity::Entity;
 use crate::materials::{Texture};
 use crate::ray::Ray;
 use crate::unity::UnityScene;
+
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
+#[cfg(target_arch = "wasm32")]
+use web_time::Instant;
 
 pub struct State {
     window: Arc<Window>,
@@ -87,9 +93,9 @@ impl State {
             & (wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_PASSES);
 
         if features.contains(wgpu::Features::TIMESTAMP_QUERY) {
-            println!("Adapter supports timestamp queries.");
+            info!("Adapter supports timestamp queries.");
         } else {
-            println!("Adapter does not support timestamp queries, aborting.");
+            info!("Adapter does not support timestamp queries, aborting.");
         }
         // if !features.contains(wgpu::Features::SHADER_F16) {
         //     panic!("设备不支持 SHADER_F16 特性");
@@ -97,9 +103,9 @@ impl State {
 
         let timestamps_inside_passes = features.contains(wgpu::Features::TIMESTAMP_QUERY_INSIDE_PASSES);
         if timestamps_inside_passes {
-            println!("Adapter supports timestamp queries within passes.");
+            info!("Adapter supports timestamp queries within passes.");
         } else {
-            println!("Adapter does not support timestamp queries within passes.");
+            warn!("Adapter does not support timestamp queries within passes.");
         }
 
         info!(
@@ -148,30 +154,38 @@ impl State {
             desired_maximum_frame_latency: 2,
         };
 
-        let mut uns = UnityScene::new();
         // 做场景资源转换，所需资源
-        #[cfg(not(target_arch = "wasm32"))]
-        // let path = PathBuf::from("Scenes/Level_JLab/Level_JLab_2.unity");
-        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_GroundZero/Level_GroundZero_1.unity");
-        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Base_SceneV2_Sub_01.unity");
-        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Base_SceneV2.unity");// 需要处理球体 10207特殊情况 x 未完成
-        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_JLab/Level_JLab_2.unity");
-        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_JLab/Level_JLab_1.unity");
-        let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_HiddenWarehouse/Level_HiddenWarehouse.unity");
-        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_OpenWorldTest/Level_Farm_01.unity");
-        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_StormZone/Level_StormZone_1.unity");
-        // let path = PathBuf::from("/Users/smile/Downloads/unity/My project/Assets/Scenes/Level_StormZone/Level_StormZone_B4.unity");
-        // let path = PathBuf::from("Scenes/Level_GroundZero/Level_GroundZero_Cave.unity");
-        #[cfg(target_arch = "wasm32")]
         let path = PathBuf::from("Scenes/Level_JLab/Level_JLab_2.unity");
 
-        let mut unity_scene = uns.from_str(path).await?;
+        let time = Instant::now();
+        info!("Start parse Scene, times: {}", time.elapsed().as_millis());
 
-        let mut scene = Scene::new(&device, &config, unity_scene.game_object.len() * 2);
+        // 在 wasm 环境下使用 worker，在非 wasm 环境下使用正常方法
+        let mut unity_scene = {
+            let mut uns = UnityScene::new();
+            uns.from_str(path.clone()).await.map_err(|e| {
+                error!("Failed to load unity scene: {:?}", e);
+                e
+            })?
+        };
+        info!("parse Scene done, current time: {}", time.elapsed().as_millis());
+
+        let mut scene = Scene::new(&device, &config, unity_scene.game_object_raw.len() * 2);
         let mut resource_manager = ResourceManager::new(&device, &queue);
-        resource_manager.loading_mapping().await?;
+        resource_manager.loading_mapping().await.map_err(| e| {
+            error!("Failed to load resource mapping: {:?}", e);
+            e
+        })?;
 
-        Scene::loading_scene(&device, &queue, &mut scene, &mut unity_scene, &mut resource_manager, &config).await?;
+        info!("loading_scene, current time: {}", time.elapsed().as_millis());
+
+        Scene::loading_scene(&device, &queue, &mut scene, &mut unity_scene, &mut resource_manager, &config).await.map_err(|e| {
+            error!("Failed to load scene scene: {:?}", e);
+            e
+        })?;
+
+        info!("loading_scene done, current time: {}", time.elapsed().as_millis());
+
 
         Ok(Self {
             window,
@@ -381,6 +395,7 @@ impl ApplicationHandler<State> for App {
                             .send_event(
                                 State::new(window)
                                     .await
+                                    .map_err(|e| log::error!("{:?}", e))
                                     .expect("Unable to create canvas!!!")
                             )
                             .is_ok()
@@ -525,15 +540,14 @@ impl ApplicationHandler<State> for App {
 
 // 启动，从外部传入数据
 pub fn run() -> anyhow::Result<()> {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        env_logger::init();
-    }
     #[cfg(target_arch = "wasm32")]
     {
         console_log::init_with_level(log::Level::Info).unwrap_throw();
     }
-
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        init_logger()
+    }
     let event_loop = EventLoop::with_user_event().build()?;
     let mut app = App::new(
         #[cfg(target_arch = "wasm32")]
@@ -544,11 +558,18 @@ pub fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
+
+pub fn init_logger(){
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .parse_default_env()  // 仍然允许 RUST_LOG 环境变量覆盖
+        .init();
+}
+
 #[cfg(target_arch = "wasm32")]
-#[wasm_bindgen(start)]
+#[wasm_bindgen]
 pub fn run_web() -> Result<(), wasm_bindgen::JsValue> {
     console_error_panic_hook::set_once();
     run().unwrap_throw();
-
     Ok(())
 }

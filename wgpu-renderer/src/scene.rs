@@ -7,19 +7,23 @@ use wgpu::{Device, Queue, SurfaceConfiguration};
 use crate::camera::Camera;
 use crate::entity::{Entity, InstanceRaw, Transform, TransformSystem};
 use crate::light::{DirectionalLight, LightManager, PointLight};
-use crate::materials::{Texture};
+use crate::materials::Texture;
 use crate::resource::{MaterialId, MeshId, ResourceManager};
 use crate::utils::get_background_color;
 
 pub type PipelineId = String;
 
-use crate::unity::{Component, UnityMeshFilter, UnityMeshRenderer, UnityScene};
+use log::{error, info};
+use wgpu::util::DeviceExt;
+
+use crate::ray::Ray;
+use crate::unity::{
+    Component, UnityGameObject, UnityMeshFilter, UnityMeshRenderer, UnityScene, UnityTransform,
+};
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Instant;
-use wgpu::util::DeviceExt;
 #[cfg(target_arch = "wasm32")]
 use web_time::Instant;
-use crate::ray::Ray;
 
 pub struct PipelineManager {
     pipelines: HashMap<PipelineId, wgpu::RenderPipeline>,
@@ -43,7 +47,7 @@ pub struct Scene {
     pub ambient_light: [f32; 3],
     pub background_color: wgpu::Color,
 
-    pub entities: Vec<Entity>, // 存档所有的实体类key
+    pub entities: Vec<Entity>,                 // 存档所有的实体类key
     entity_display_map: HashMap<Entity, bool>, // true显示 false不显示
 
     pub scene_bind_group_layout: wgpu::BindGroupLayout,
@@ -110,19 +114,20 @@ impl RenderBatchSystem {
         // 更新instance_buffers
 
         for batch in self.batches.values_mut() {
-            let instances: Vec<InstanceRaw> = batch.entities.iter().filter_map(|&entity| {
-                let transform =  transform_system.get_world_matrix(entity);
-                match transform {
-                    Some(ts) => Some(InstanceRaw{
-                        model: ts.into()
-                    }),
-                    None => {
-                        println!("entity: {:?} not transofm", entity);
-                        None
+            let instances: Vec<InstanceRaw> = batch
+                .entities
+                .iter()
+                .filter_map(|&entity| {
+                    let transform = transform_system.get_world_matrix(entity);
+                    match transform {
+                        Some(ts) => Some(InstanceRaw { model: ts.into() }),
+                        None => {
+                            println!("entity: {:?} not transofm", entity);
+                            None
+                        }
                     }
-                }
-
-            }).collect();
+                })
+                .collect();
 
             if instances.is_empty() {
                 batch.instance_buffer = None; // 全部被剔除
@@ -134,7 +139,7 @@ impl RenderBatchSystem {
                     label: Some("Instance Buffer"),
                     contents: bytemuck::cast_slice(&instances),
                     usage: wgpu::BufferUsages::VERTEX,
-                }
+                },
             ));
         }
     }
@@ -223,57 +228,17 @@ impl Scene {
         });
 
         let alignment = device.limits().min_uniform_buffer_offset_alignment as u64;
-        println!("Real alignment required: {}", alignment); // 在 macOS 上打印看看
+        info!("Real alignment required: {}", alignment); // 在 macOS 上打印看看
         // ⭐ 一次性更新所有 transform 到 buffer
         // let max_entities = 100000;// 数据连续： 优化部分，transform 高频变化数据，直接通过offset进行数据的写入以及更新，利用entity的is_dirty进行管理是否更新
         let aligned_size = Self::aligned_uniform_size(size_of::<Matrix4<f32>>() as u64);
 
-        println!(
+        info!(
             "max_entities: {}, aligned_size: {}",
             max_entities,
             aligned_size * max_entities as u64
         );
-        // let transforms_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-        //     label: Some("Transforms Buffer"),
-        //     size: aligned_size * max_entities as u64,
-        //     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        //     mapped_at_creation: false,
-        // });
-
-        // let transform_bind_group_layout =
-        //     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        //         label: Some("Transform Bind Layout"),
-        //         entries: &[wgpu::BindGroupLayoutEntry {
-        //             binding: 0,
-        //             visibility: wgpu::ShaderStages::VERTEX,
-        //             ty: wgpu::BindingType::Buffer {
-        //                 ty: wgpu::BufferBindingType::Uniform,
-        //                 has_dynamic_offset: true, // 动态偏移
-        //                 min_binding_size: Some(
-        //                     std::num::NonZeroU64::new(std::mem::size_of::<Matrix4<f32>>() as u64)
-        //                         .unwrap(),
-        //                 ),
-        //             },
-        //             count: None,
-        //         }],
-        //     });
-
-        // let transform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        //     label: Some("Transform Bind Group"),
-        //     layout: &transform_bind_group_layout,
-        //     entries: &[wgpu::BindGroupEntry {
-        //         binding: 0,
-        //         resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-        //             buffer: &transforms_uniform_buffer,
-        //             offset: 0,
-        //             size: Some(
-        //                 std::num::NonZeroU64::new(std::mem::size_of::<Matrix4<f32>>() as u64)
-        //                     .unwrap(),
-        //             ),
-        //         }),
-        //     }],
-        // });
-
+        
         Scene {
             light_manager,
             camera,
@@ -310,7 +275,6 @@ impl Scene {
             // Transform AABB to world space (simplified: just offset by position)
             let world_aabb = mesh.aabb.transform(&transform);
 
-
             if let Some(distance) = ray.intersect_aabb(world_aabb.min, world_aabb.max) {
                 match closest {
                     None => closest = Some((entity.id(), distance)),
@@ -338,12 +302,21 @@ impl Scene {
         config: &SurfaceConfiguration,
     ) -> anyhow::Result<()> {
         let indexs = &unity_scene.index; // 查看类型
-        let objects = &unity_scene.game_object;
-        let transforms = &unity_scene.transforms;
-        let mesh_renders = &unity_scene.mesh_renderers;
-        let mesh_filters = &unity_scene.mesh_filters;
-        let test_id = 19022;
+        let objects = &unity_scene.game_object_raw;
+        // let mut transforms: HashMap<u32, UnityTransform> = HashMap::new();
+        let transforms_raw = &unity_scene.transforms_raw;
+        // let mesh_renders = &unity_scene.mesh_renderers;
+        let mesh_renderers_raw = &unity_scene.mesh_renderers_raw;
+        // let mesh_filters = &unity_scene.mesh_filters;
+        let mesh_filters_raw = &unity_scene.mesh_filters_raw;
+        let test_id = 16188;
         for (entity_id, game_object) in objects {
+            let game_object =
+                serde_yaml::from_str::<UnityGameObject>(game_object).map_err(|e| {
+                    error!("Failed to deserialize game object: {}: {:?}", entity_id, e);
+                    panic!("Failed to deserialize game object: {:?}", e);
+                    e
+                })?;
             // 查看挂载的transform
             let entity = Entity::new(*entity_id);
             if game_object.m_is_active != 1 {
@@ -351,11 +324,11 @@ impl Scene {
             }
 
             if *entity_id == test_id {
-                println!("entity: {:?}", entity);
+                info!("entity: {:?}", entity);
             }
             let mut is_light = false;
-            let mut unity_mesh_render: Option<&UnityMeshRenderer> = None;
-            let mut unity_mesh_filter: Option<&UnityMeshFilter> = None;
+            let mut unity_mesh_render: Option<UnityMeshRenderer> = None;
+            let mut unity_mesh_filter: Option<UnityMeshFilter> = None;
 
             let mut local_transform = Transform::new();
 
@@ -364,15 +337,21 @@ impl Scene {
                 let s_type = indexs.get(&file_id);
                 match s_type {
                     // transform管理
-                    Some(s) if s.as_str() == "UnityTransform" => {
-                        let transform = transforms.get(&file_id);
-                        let op = transform.as_deref();
-
-                        let Some(unity_transform) = op else {
+                    Some(s) if s.as_str() == "Transform" => {
+                        let transform_raw = transforms_raw.get(&file_id);
+                        let Some(transform_raw) = transform_raw else {
                             continue;
                         };
+                        let unity_transform = serde_yaml::from_str::<UnityTransform>(transform_raw)
+                            .map_err(|e| {
+                                error!(" 解析错误:{:?} : {:?}", entity_id, e);
+                                e
+                            })?;
                         if *entity_id == test_id {
-                            println!("{}: transform: {:?}, gameobject : {:?}", *entity_id, op, &game_object);
+                            info!(
+                                "{}: transform: {:?}, gameobject : {:?}",
+                                *entity_id, unity_transform, &game_object
+                            );
                         }
                         // 通过transform查找children上的transform数据，transform对应;
                         local_transform.set_position(&unity_transform.m_local_position);
@@ -391,39 +370,66 @@ impl Scene {
                         ));
 
                         // 根据children设置父子关系
-                        // for m_child in &unity_transform.m_children {
-                        //     scene.transform_system.set_parent(Entity::new(file_id), Entity::new(m_child.file_id));
-                        // }
                         if let Some(m) = &unity_transform.m_father {
-                            let parent_transform = transforms.get(&m.file_id);
+                            let transform_raw = transforms_raw.get(&m.file_id);
 
-                            if let Some(transform) = parent_transform {
-                                scene.transform_system.set_parent(
-                                    Entity::new(transform.m_game_object.file_id),
-                                    Entity::new(unity_transform.m_game_object.file_id),
-                                );
+                            if let Some(transform_raw) = transform_raw {
+                                match serde_yaml::from_str::<UnityTransform>(transform_raw) {
+                                    Ok(transform) => {
+                                        scene.transform_system.set_parent(
+                                            Entity::new(transform.m_game_object.file_id),
+                                            Entity::new(unity_transform.m_game_object.file_id),
+                                        );
+                                    }
+                                    Err(e) => {
+                                        error!("解析坐标异常错误:{:?} : {:?}", entity_id, e);
+                                        error!("Failed to deserialize transform: {}", e);
+                                    }
+                                };
                             }
                         }
                         scene.entities.push(entity);
                     }
-                    Some(s) if s.as_str() == "UnityMeshRenderer" => {
-                        unity_mesh_render = mesh_renders.get(&file_id);
+                    Some(s) if s.as_str() == "MeshRenderer" => {
+                        if let Some(content) = mesh_renderers_raw.get(&file_id) {
+                            match serde_yaml::from_str::<UnityMeshRenderer>(content) {
+                                Ok(mesh_render) => {
+                                    unity_mesh_render = Some(mesh_render);
+                                }
+                                Err(err) => {
+                                    info!("Mesh Renderer{:?}", content);
+                                    error!("Serde_yaml Failed to parse mesh renderer: {:?}", err);
+                                }
+                            };
+                        }
                     }
                     // 顶点数据
-                    Some(s) if s.as_str() == "UnityMeshFilter" => {
-                        unity_mesh_filter = mesh_filters.get(&file_id);
+                    Some(s) if s.as_str() == "MeshFilter" => {
+                        if let Some(content) = mesh_filters_raw.get(&file_id) {
+                            match serde_yaml::from_str::<UnityMeshFilter>(content) {
+                                Ok(mesh_filter) => {
+                                    unity_mesh_filter = Some(mesh_filter);
+                                }
+                                Err(e) => {
+                                    info!("MeshFilter{:?}", e);
+                                    error!("Serde_yaml Failed to parse mesh filter: {:?}", e);
+                                    continue;
+                                }
+                            }
+                        }
                     }
-                    Some(s)
-                        if s.as_str() == "UnityLight" || s.as_str() == "UnitySodaPointLight" =>
-                    {
+                    Some(s) if s.as_str() == "Light"  => { // || s.as_str() == "SodaPointLight" 暂时不用
                         is_light = true;
+                    }
+                    Some(s) if s.as_str() == "MonoBehaviour" => {
+                        // SodaPointLight是挂载在MonoBehaviour，需要特殊处理
                     }
                     _ => {}
                 }
                 // println!("loading unity 顶点数据: {:?}", unity_mesh_filter);
             }
             if *entity_id == test_id {
-                println!("entity: {:?} End Ground", entity);
+                info!("entity: {:?} End Ground", entity);
             }
             // 光照暂时不渲染
             if is_light {
@@ -431,7 +437,7 @@ impl Scene {
             }
 
             scene.add_entity(entity, local_transform);
-            
+
             let Some(mesh_filter) = unity_mesh_filter else {
                 continue;
             };
@@ -444,6 +450,10 @@ impl Scene {
             //     println!("entity mesh_renderer {} 隐藏: {:?}", game_object.m_name, entity);
             //     continue;
             // }
+
+            if *entity_id == test_id {
+                info!("entity: {:?}", entity);
+            }
             // 材质球
             let Some(mesh_render) = mesh_mesh_reference.m_children.get(0) else {
                 continue;
@@ -473,8 +483,11 @@ impl Scene {
             &scene.entity_display_map,
             resource_manager,
         );
-        println!("scene rendered all {} entities", scene.entities.len());
-        println!("scene actually rendered all {} entities", scene.total_show_entities());
+        info!("scene rendered all {} entities", scene.entities.len());
+        info!(
+            "scene actually rendered all {} entities",
+            scene.total_show_entities()
+        );
 
         Ok(())
     }
@@ -487,7 +500,7 @@ impl Scene {
     pub fn hidden_entity(&mut self, entity: Entity) {
         self.entity_display_map.insert(entity, false);
     }
-    
+
     // 查看是否显示
     pub fn is_display(&self, entity: &Entity) -> &bool {
         self.entity_display_map.get(entity).unwrap_or(&true)
@@ -592,10 +605,12 @@ impl Scene {
 
     fn total_show_entities(&self) -> usize {
         // println!("total_show_entities: {:?}", &self.entity_display_map);
-        self.entities.len() - self.entity_display_map
-            .iter()
-            .filter(|&(_, display)| *display == false)
-        .count()
+        self.entities.len()
+            - self
+                .entity_display_map
+                .iter()
+                .filter(|&(_, display)| *display == false)
+                .count()
     }
 
     pub fn render<'a>(
@@ -604,11 +619,11 @@ impl Scene {
         render_pass: &mut wgpu::RenderPass<'a>,
         resource_manager: &'a ResourceManager,
     ) {
-        
-        self.render_batches.update_instance_buffers(device, &self.transform_system);
+        self.render_batches
+            .update_instance_buffers(device, &self.transform_system);
 
         for batch in self.render_batches.batches.values() {
-            let Some(instance_buffer) = &batch.instance_buffer  else {
+            let Some(instance_buffer) = &batch.instance_buffer else {
                 continue;
             };
             // 从资源管理器获取 mesh
@@ -639,9 +654,8 @@ impl Scene {
 
             render_pass.set_bind_group(2, &material.bind_group, &[]);
             // 创建pipeline 布局等等，设置buffer之类
-            render_pass.draw_indexed(0..mesh.index_count, 0, 0..batch.entities.len() as u32,);
+            render_pass.draw_indexed(0..mesh.index_count, 0, 0..batch.entities.len() as u32);
         }
-
 
         // println!("resource_manager: {:#?}", &resource_manager);
         // 渲染实体

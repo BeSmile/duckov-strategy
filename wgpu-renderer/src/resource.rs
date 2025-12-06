@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::{env, fs};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use log::{info};
+use log::*;
 use wgpu::{Device, Queue, SurfaceConfiguration};
 use crate::entity::{Entity};
 use crate::materials::{Material, Texture};
@@ -29,7 +29,7 @@ fn format_url(file_name: &str) -> reqwest::Url {
     let location = window.location();
     let base = reqwest::Url::parse(&format!(
         "{}/",
-        "http://localhost:8000",
+        "http://192.168.50.79:8000",
     )).unwrap();
     base.join(file_name).unwrap()
 }
@@ -176,33 +176,25 @@ async fn save_file_in_dir(
 #[cfg(not(target_arch = "wasm32"))]
 fn transfer_file(file_path: &str)  -> anyhow::Result<Vec<u8>> {
     dotenv::dotenv().ok();
-    let output_path = env::var("target_project").unwrap();
-    let transfer: bool = env::var("transfer").unwrap().parse().unwrap_or(false);
-
-    // 定义需要去除的前缀
-    let prefix = "/Users/smile/Downloads/duckov/ExportedProject/Assets";
-
-    // 去除前缀，获取相对路径
-    let relative_path = file_path.strip_prefix(prefix)
-        .unwrap_or(file_path)
-        .trim_start_matches('/');
+    let output_path = env::var("TARGET_PROJECT")?;
+    let transfer: bool = env::var("TRANSFER")?.parse().unwrap_or(false);
 
     // 构建目标路径
-    let target_path = PathBuf::from(&output_path).join(relative_path);
-
+    let target_path = PathBuf::from(&output_path).join(file_path);
     // 创建目标目录
     if let Some(parent) = target_path.parent() {
         fs::create_dir_all(parent)?;
     }
-
     // 如果需要转移文件，则复制
     if transfer {
-        fs::copy(file_path, &target_path)?;
-        println!("Transferred file: {} -> {:?}", file_path, target_path);
+        let output_path = env::var("TARGET_PROJECT")?;
+        let source_file = Path::new(&output_path).join(&file_path);
+        fs::copy(source_file, &target_path)?;
+        info!("Transferred file: {} -> {:?}", file_path, target_path);
     }
 
     // 读取并返回文件内容
-    let data = fs::read(file_path)?;
+    let data = fs::read(target_path)?;
     Ok(data)
 }
 
@@ -235,12 +227,8 @@ impl ResourceManager {
     }
     
     pub async fn loading_mapping(&mut self) -> anyhow::Result<()>{
-        // todo 优化部分
-        #[cfg(target_arch = "wasm32")]
         let guids = Self::load_binary("guid.json").await?;
-        #[cfg(not(target_arch = "wasm32"))]
-        let guids = Self::load_binary("guid_full.json").await?;
-
+        
         self.manifest = serde_json::from_str(std::str::from_utf8(&guids)?)?;
         Ok(())
     }
@@ -272,10 +260,36 @@ impl ResourceManager {
 
                 response_data
             }
+
+            // 如果缓存不存在，从网络获取
+            // info!("Fetching from network: {}", file_name);
+            // let url = format_url(file_name);
+            // let response_data = reqwest::get(url).await?.bytes().await?.to_vec();
+
+            // 异步保存到 OPFS（不等待完成）
+            let data_clone = response_data.clone();
+            let file_name_clone = file_name.to_string();
+            wasm_bindgen_futures::spawn_local(async move {
+                if save_to_opfs(&file_name_clone, &data_clone).await.is_ok() {
+                    info!("Saved to OPFS cache: {}", file_name_clone);
+                } else {
+                    info!("Failed to save to OPFS cache: {}", file_name_clone);
+                }
+            });
+
+            response_data
         };
         #[cfg(not(target_arch = "wasm32"))]
         let data = {
-            let path = Path::new(env!("OUT_DIR")).join("res").join(file_name);
+            dotenv::dotenv().ok();
+
+            let target_key = "TARGET_PROJECT";
+            let target_path = env::var(target_key).map_err(|e| {
+                error!("Failed to get target path for '{}': {:?}", file_name, e);
+                e
+            })?;
+            let path = Path::new(&target_path).join(file_name);
+            
             fs::read(path.clone()).map_err(|e| {
                 info!("Loaded binary filename: {}, origin_path: {:?}, path: {:?}", file_name, &path.to_str(), Path::new(env!("OUT_DIR")).join("res").join(file_name));
                 e
@@ -355,7 +369,10 @@ impl ResourceManager {
         } else {
             let file_path = self.manifest.get(guid).unwrap();
             #[cfg(not(target_arch = "wasm32"))]
-            let mat_bytes = transfer_file(&file_path)?;
+            let mat_bytes = transfer_file(&file_path).map_err(|e| {
+                println!("transfer_file error: {:?}", e);
+                e
+            })?;
             #[cfg(target_arch = "wasm32")]
             let mat_bytes = ResourceManager::load_binary(file_path).await.map_err(|e| {
                 println!("Load mat asset error: {:?}, file_name: {:?}", e, guid);
