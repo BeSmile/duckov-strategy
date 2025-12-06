@@ -1,3 +1,5 @@
+'use client'
+
 import { SyncInitInput, get_maps, run_web, default as init } from '@/wgpu-renderer/pkg';
 
 
