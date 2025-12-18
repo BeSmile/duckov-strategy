@@ -1,1 +1,1 @@
-{"base":{"typeID":335,"displayName":"Item_Nut","icon":"Nut.webp","maxStackCount":10,"value":222,"quality":1,"weight":0.14,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":335,"displayName":"Item_Nut","icon":"Nut.webp","maxStackCount":50,"value":222,"quality":1,"weight":0.14,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}

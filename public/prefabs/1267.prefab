@@ -1,1 +1,1 @@
-{"base":{"typeID":1267,"displayName":"Item_BP_SHT_Candy_Ghost","icon":"Blueprint.webp","maxStackCount":1,"value":50,"quality":3,"weight":0.0,"tags":["Formula","Formula_Blueprint"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":1267,"displayName":"Item_BP_SHT_Candy_Ghost","icon":"Blueprint.webp","maxStackCount":1,"value":50,"quality":3,"weight":0.1,"tags":["Formula","Formula_Blueprint"],"constants":{"entries":[]}},"slots":null,"attributes":null}

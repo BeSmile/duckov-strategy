@@ -1,1 +1,1 @@
-{"base":{"typeID":81,"displayName":"Item_Dice","icon":"dice.webp","maxStackCount":1,"value":1195,"quality":2,"weight":0.05,"tags":["Luxury"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":81,"displayName":"Item_Dice","icon":"dice.webp","maxStackCount":10,"value":1195,"quality":2,"weight":0.05,"tags":["Luxury"],"constants":{"entries":[]}},"slots":null,"attributes":null}

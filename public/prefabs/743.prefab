@@ -1,1 +1,1 @@
-{"base":{"typeID":743,"displayName":"Item_fiber","icon":"fiber.webp","maxStackCount":10,"value":194,"quality":2,"weight":0.2,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":743,"displayName":"Item_fiber","icon":"fiber.webp","maxStackCount":30,"value":194,"quality":2,"weight":0.2,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}

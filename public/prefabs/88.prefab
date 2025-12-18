@@ -1,1 +1,1 @@
-{"base":{"typeID":88,"displayName":"Item_Drugs","icon":"Medicine_bottle02.webp","maxStackCount":5,"value":127,"quality":1,"weight":0.21,"tags":["Medic"],"constants":{"entries":[{"key":"SFX_Put","dataType":4,"data":"655f4974656d5f50696c6c","display":0}]}},"slots":null,"attributes":null}
+{"base":{"typeID":88,"displayName":"Item_Drugs","icon":"Medicine_bottle02.webp","maxStackCount":50,"value":127,"quality":1,"weight":0.21,"tags":["Medic"],"constants":{"entries":[{"key":"SFX_Put","dataType":4,"data":"655f4974656d5f50696c6c","display":0}]}},"slots":null,"attributes":null}

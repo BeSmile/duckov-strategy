@@ -1,1 +1,1 @@
-{"base":{"typeID":298,"displayName":"Item_HardDrive","icon":"HardDrive.webp","maxStackCount":1,"value":239,"quality":3,"weight":0.19,"tags":["Electric","Computer"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":298,"displayName":"Item_HardDrive","icon":"HardDrive.webp","maxStackCount":3,"value":239,"quality":3,"weight":0.19,"tags":["Electric","Computer"],"constants":{"entries":[]}},"slots":null,"attributes":null}

@@ -1,1 +1,1 @@
-{"base":{"typeID":361,"displayName":"Item_Wood","icon":"Wood.webp","maxStackCount":10,"value":102,"quality":1,"weight":0.41,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":361,"displayName":"Item_Wood","icon":"Wood.webp","maxStackCount":50,"value":102,"quality":1,"weight":0.41,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}

@@ -1,1 +1,1 @@
-{"base":{"typeID":301,"displayName":"Item_FloppyDisk","icon":"FloppyDisk.webp","maxStackCount":1,"value":1200,"quality":4,"weight":0.1,"tags":["Electric","Computer"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":301,"displayName":"Item_FloppyDisk","icon":"FloppyDisk.webp","maxStackCount":3,"value":1200,"quality":4,"weight":0.1,"tags":["Electric","Computer"],"constants":{"entries":[]}},"slots":null,"attributes":null}

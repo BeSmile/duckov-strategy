@@ -693,9 +693,9 @@ Item_MetalSlice,金属片
 Item_MetalSlice_Desc,略微生锈的金属片
 Item_Quest_Letter_Explorer,探索者的信
 Item_Quest_Letter_Explorer_Desc,先行来到Duckov的探索者的信件。
-Item_Key_Dormitory103,宿舍楼103钥匙,2025/1/17 14:13:40
+Item_Key_Dormitory103,宿舍楼103钥匙(DEMO不可用),2025/1/17 14:13:40
 Item_Key_Dormitory103_Desc,一把宿舍楼的钥匙。也许可以打开103的门。
-Item_Key_Dormitory106,宿舍楼106钥匙,2025/1/17 14:13:32
+Item_Key_Dormitory106,宿舍楼106钥匙(DEMO不可用),2025/1/17 14:13:32
 Item_Key_Dormitory106_Desc,一把宿舍楼的钥匙。也许可以打开106的门。
 Item_Key_Card_Factory,工厂门禁卡
 Item_Key_Card_Factory_Desc,工厂员工的门禁卡

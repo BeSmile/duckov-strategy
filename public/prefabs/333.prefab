@@ -1,1 +1,1 @@
-{"base":{"typeID":333,"displayName":"Item_Bulb","icon":"Bulb.webp","maxStackCount":10,"value":255,"quality":2,"weight":0.11,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":333,"displayName":"Item_Bulb","icon":"Bulb.webp","maxStackCount":20,"value":255,"quality":2,"weight":0.11,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}

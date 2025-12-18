@@ -1,1 +1,1 @@
-{"base":{"typeID":662,"displayName":"Item_WeaponPartsLv2","icon":"WeaponParts_Green.webp","maxStackCount":5,"value":248,"quality":2,"weight":0.5,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":662,"displayName":"Item_WeaponPartsLv2","icon":"WeaponParts_Green.webp","maxStackCount":50,"value":248,"quality":2,"weight":0.5,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}

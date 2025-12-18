@@ -1,0 +1,1 @@
+{"base":{"typeID":519,"displayName":"Item_Stock_SNP_REC_2","icon":"cross.webp","maxStackCount":1,"value":1100,"quality":999,"weight":0.7,"tags":["Accessory","Stock","GunType_SNP"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"RecoilScaleV","display":1,"baseValue":null,"value":-0.23},{"key":"RecoilScaleH","display":1,"baseValue":null,"value":-0.23}]}}

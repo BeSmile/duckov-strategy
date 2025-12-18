@@ -1,1 +1,1 @@
-{"base":{"typeID":136,"displayName":"Item_Injection","icon":"Injection.webp","maxStackCount":3,"value":295,"quality":2,"weight":0.1,"tags":["Medic"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":136,"displayName":"Item_Injection","icon":"Injection.webp","maxStackCount":20,"value":295,"quality":2,"weight":0.1,"tags":["Medic"],"constants":{"entries":[]}},"slots":null,"attributes":null}

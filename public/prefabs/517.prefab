@@ -1,0 +1,1 @@
+{"base":{"typeID":517,"displayName":"Item_Stock_AR_SCA_6","icon":"cross.webp","maxStackCount":1,"value":1,"quality":999,"weight":0.7,"tags":["Accessory","Stock","GunType_AR"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"ScatterFactorADS","display":1,"baseValue":null,"value":-0.31}]}}

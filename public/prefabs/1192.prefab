@@ -1,1 +1,1 @@
-{"base":{"typeID":1192,"displayName":"Item_GunPowder_Blue","icon":"SM_PropellantBottle 2.webp","maxStackCount":5,"value":500,"quality":3,"weight":0.45,"tags":["Special"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":1192,"displayName":"Item_GunPowder_Blue","icon":"SM_PropellantBottle 2.webp","maxStackCount":10,"value":500,"quality":3,"weight":0.45,"tags":["Special"],"constants":{"entries":[]}},"slots":null,"attributes":null}

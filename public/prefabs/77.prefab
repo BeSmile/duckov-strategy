@@ -1,1 +1,1 @@
-{"base":{"typeID":77,"displayName":"Item_BicyleToy","icon":"bicycle.webp","maxStackCount":1,"value":1432,"quality":2,"weight":0.9,"tags":["Luxury"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":77,"displayName":"Item_BicyleToy","icon":"bicycle.webp","maxStackCount":1,"value":1432,"quality":2,"weight":0.9,"tags":["Luxury","Collection"],"constants":{"entries":[]}},"slots":null,"attributes":null}

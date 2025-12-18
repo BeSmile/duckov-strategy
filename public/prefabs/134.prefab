@@ -1,1 +1,1 @@
-{"base":{"typeID":134,"displayName":"Item_Bone","icon":"bone.webp","maxStackCount":1,"value":780,"quality":1,"weight":0.2,"tags":["Luxury"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":134,"displayName":"Item_Bone","icon":"bone.webp","maxStackCount":20,"value":780,"quality":1,"weight":0.2,"tags":["Luxury"],"constants":{"entries":[]}},"slots":null,"attributes":null}

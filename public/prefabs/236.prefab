@@ -1,0 +1,1 @@
+{"base":{"typeID":236,"displayName":"Item_Magazine_SMG_Lv_3","icon":"cross.webp","maxStackCount":1,"value":2100,"quality":999,"weight":0.25,"tags":["Accessory","Magazine","GunType_SMG"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"Capacity","display":1,"baseValue":null,"value":0.6}]}}

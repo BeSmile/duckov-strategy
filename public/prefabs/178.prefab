@@ -1,0 +1,1 @@
+{"base":{"typeID":178,"displayName":"Item_Grip_SP_Lv_2","icon":"cross.webp","maxStackCount":1,"value":900,"quality":999,"weight":0.4,"tags":["Accessory","Grip"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"MaxScatter","display":1,"baseValue":null,"value":-0.15},{"key":"ScatterRecover","display":1,"baseValue":null,"value":0.3}]}}

@@ -1,0 +1,1 @@
+{"base":{"typeID":583,"displayName":"Item_Muzzle_SHT_SCA_2","icon":"cross.webp","maxStackCount":1,"value":1,"quality":999,"weight":0.25,"tags":["Accessory","Muzzle","GunType_SHT"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"ScatterFactorADS","display":1,"baseValue":null,"value":-0.13}]}}

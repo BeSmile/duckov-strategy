@@ -1,1 +1,1 @@
-{"base":{"typeID":337,"displayName":"Item_Cables","icon":"Cables.webp","maxStackCount":5,"value":150,"quality":1,"weight":0.08,"tags":["Electric","Computer"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":337,"displayName":"Item_Cables","icon":"Cables.webp","maxStackCount":20,"value":150,"quality":1,"weight":0.08,"tags":["Electric","Computer"],"constants":{"entries":[]}},"slots":null,"attributes":null}

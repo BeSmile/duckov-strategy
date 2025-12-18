@@ -1,0 +1,1 @@
+{"base":{"typeID":522,"displayName":"Item_Stock_SNP_SCA_3","icon":"cross.webp","maxStackCount":1,"value":1,"quality":999,"weight":0.7,"tags":["Accessory","Stock","GunType_SNP"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"ScatterFactor","display":1,"baseValue":null,"value":-0.23}]}}

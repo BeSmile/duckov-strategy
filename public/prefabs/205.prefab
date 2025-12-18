@@ -1,0 +1,1 @@
+{"base":{"typeID":205,"displayName":"Item_Scope_Holo_Lv_2","icon":"cross.webp","maxStackCount":1,"value":900,"quality":999,"weight":0.25,"tags":["Accessory","Scope"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"CritRate","display":1,"baseValue":null,"value":0.04},{"key":"Damage","display":1,"baseValue":null,"value":0.05}]}}

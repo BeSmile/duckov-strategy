@@ -1,1 +1,1 @@
-{"base":{"typeID":72,"displayName":"Item_Book","icon":"book.webp","maxStackCount":1,"value":449,"quality":1,"weight":0.49,"tags":["Information"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":72,"displayName":"Item_Book","icon":"book.webp","maxStackCount":5,"value":449,"quality":1,"weight":0.49,"tags":["Information"],"constants":{"entries":[]}},"slots":null,"attributes":null}

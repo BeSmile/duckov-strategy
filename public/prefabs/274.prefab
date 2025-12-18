@@ -1,0 +1,1 @@
+{"base":{"typeID":274,"displayName":"Item_Scope_Digit_Lv_4","icon":"cross.webp","maxStackCount":1,"value":5000,"quality":999,"weight":0.25,"tags":["Accessory","Scope"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"CritRate","display":1,"baseValue":null,"value":0.12},{"key":"Damage","display":1,"baseValue":null,"value":0.1}]}}

@@ -1,1 +1,1 @@
-{"base":{"typeID":340,"displayName":"Item_ElectricParts","icon":"ElectricParts.webp","maxStackCount":5,"value":235,"quality":1,"weight":0.07,"tags":["Electric","Computer"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":340,"displayName":"Item_ElectricParts","icon":"ElectricParts.webp","maxStackCount":50,"value":235,"quality":1,"weight":0.07,"tags":["Electric","Computer"],"constants":{"entries":[]}},"slots":null,"attributes":null}

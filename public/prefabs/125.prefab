@@ -1,1 +1,1 @@
-{"base":{"typeID":125,"displayName":"Item_Trumpet","icon":"trumpet.webp","maxStackCount":1,"value":4015,"quality":4,"weight":2.88,"tags":["Luxury"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":125,"displayName":"Item_Trumpet","icon":"trumpet.webp","maxStackCount":1,"value":4015,"quality":4,"weight":2.88,"tags":["Luxury","Collection"],"constants":{"entries":[]}},"slots":null,"attributes":null}

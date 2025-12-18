@@ -1,0 +1,1 @@
+{"base":{"typeID":422,"displayName":"Item_Muzzle_S_Slience_3","icon":"cross.webp","maxStackCount":1,"value":3250,"quality":999,"weight":0.25,"tags":["Accessory","Muzzle","GunType_SMG"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"SoundRange","display":1,"baseValue":null,"value":-0.4},{"key":"BulletSpeed","display":1,"baseValue":null,"value":0.3}]}}

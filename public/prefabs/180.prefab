@@ -1,0 +1,1 @@
+{"base":{"typeID":180,"displayName":"Item_Grip_Verticle_Lv_1","icon":"cross.webp","maxStackCount":1,"value":380,"quality":999,"weight":0.4,"tags":["Accessory","Grip"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"MaxScatterADS","display":1,"baseValue":null,"value":-0.05}]}}

@@ -1,0 +1,1 @@
+{"base":{"typeID":1352,"displayName":"Item_SnowLandTicket","icon":"SnowTicket.webp","maxStackCount":1,"value":5000,"quality":5,"weight":0.1,"tags":["SpecialKey","Key","LockInDemo"],"constants":{"entries":[{"key":"MaxDurability","dataType":1,"data":"0000803f","display":0}]}},"slots":null,"attributes":null}

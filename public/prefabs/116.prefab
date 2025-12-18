@@ -1,1 +1,1 @@
-{"base":{"typeID":116,"displayName":"Item_Newspaper","icon":"newspaper.webp","maxStackCount":1,"value":347,"quality":2,"weight":0.25,"tags":["Information"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":116,"displayName":"Item_Newspaper","icon":"newspaper.webp","maxStackCount":10,"value":347,"quality":2,"weight":0.25,"tags":["Information"],"constants":{"entries":[]}},"slots":null,"attributes":null}

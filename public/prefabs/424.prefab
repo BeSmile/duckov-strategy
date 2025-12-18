@@ -1,1 +1,1 @@
-{"base":{"typeID":424,"displayName":"Item_Note_BlackMarket","icon":"note_BlackMarket.webp","maxStackCount":1,"value":2541,"quality":3,"weight":0.12,"tags":["Information"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":424,"displayName":"Item_Note_BlackMarket","icon":"note_BlackMarket.webp","maxStackCount":5,"value":2541,"quality":3,"weight":0.12,"tags":["Information"],"constants":{"entries":[]}},"slots":null,"attributes":null}

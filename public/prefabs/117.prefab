@@ -1,1 +1,1 @@
-{"base":{"typeID":117,"displayName":"Item_Note","icon":"note.webp","maxStackCount":1,"value":761,"quality":2,"weight":0.16,"tags":["Information"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":117,"displayName":"Item_Note","icon":"note.webp","maxStackCount":5,"value":761,"quality":2,"weight":0.16,"tags":["Information"],"constants":{"entries":[]}},"slots":null,"attributes":null}

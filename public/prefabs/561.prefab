@@ -1,0 +1,1 @@
+{"base":{"typeID":561,"displayName":"Item_Magazine_SHT_CAP_1","icon":"cross.webp","maxStackCount":1,"value":500,"quality":999,"weight":0.5,"tags":["Accessory","Magazine","GunType_SHT"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"Capacity","display":1,"baseValue":null,"value":0.5}]}}

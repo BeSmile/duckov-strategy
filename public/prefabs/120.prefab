@@ -1,1 +1,1 @@
-{"base":{"typeID":120,"displayName":"Item_RingToy","icon":"ring.webp","maxStackCount":1,"value":1678,"quality":1,"weight":0.14,"tags":["Luxury"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":120,"displayName":"Item_RingToy","icon":"ring.webp","maxStackCount":1,"value":1678,"quality":1,"weight":0.14,"tags":["Luxury","Collection"],"constants":{"entries":[]}},"slots":null,"attributes":null}

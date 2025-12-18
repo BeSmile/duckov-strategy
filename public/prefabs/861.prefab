@@ -1,1 +1,1 @@
-{"base":{"typeID":861,"displayName":"Item_WeaponPartsPolluted","icon":"WeaponParts_Storm.webp","maxStackCount":5,"value":1520,"quality":9,"weight":0.3,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":861,"displayName":"Item_WeaponPartsPolluted","icon":"WeaponParts_Storm.webp","maxStackCount":50,"value":1520,"quality":9,"weight":0.3,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}

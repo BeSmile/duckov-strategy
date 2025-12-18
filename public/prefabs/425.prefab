@@ -1,1 +1,1 @@
-{"base":{"typeID":425,"displayName":"Item_UDisk","icon":"UDisk.webp","maxStackCount":1,"value":2466,"quality":3,"weight":0.14,"tags":["Information"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":425,"displayName":"Item_UDisk","icon":"UDisk.webp","maxStackCount":5,"value":2466,"quality":3,"weight":0.14,"tags":["Information"],"constants":{"entries":[]}},"slots":null,"attributes":null}

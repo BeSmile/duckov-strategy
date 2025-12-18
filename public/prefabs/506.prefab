@@ -1,0 +1,1 @@
+{"base":{"typeID":506,"displayName":"Item_Stock_SMG_SCA_2","icon":"cross.webp","maxStackCount":1,"value":1,"quality":999,"weight":0.7,"tags":["Accessory","Stock","GunType_SMG"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"ScatterFactor","display":1,"baseValue":null,"value":-0.13}]}}

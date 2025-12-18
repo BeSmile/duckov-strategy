@@ -1,0 +1,1 @@
+{"base":{"typeID":415,"displayName":"Item_Magazine_Sniper_Lv_4","icon":"cross.webp","maxStackCount":1,"value":9800,"quality":999,"weight":0.25,"tags":["Accessory","Magazine","GunType_SNP"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"Capacity","display":1,"baseValue":null,"value":1.0}]}}

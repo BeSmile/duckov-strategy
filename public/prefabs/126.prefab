@@ -1,1 +1,1 @@
-{"base":{"typeID":126,"displayName":"Item_Xylophone","icon":"xylophone.webp","maxStackCount":1,"value":984,"quality":1,"weight":1.98,"tags":["Luxury"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":126,"displayName":"Item_Xylophone","icon":"xylophone.webp","maxStackCount":1,"value":984,"quality":1,"weight":1.98,"tags":["Luxury","Collection"],"constants":{"entries":[]}},"slots":null,"attributes":null}

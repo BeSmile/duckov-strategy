@@ -1,0 +1,1 @@
+{"base":{"typeID":483,"displayName":"Item_Muzzle_AR_SIL_2","icon":"cross.webp","maxStackCount":1,"value":1,"quality":999,"weight":0.25,"tags":["Accessory","Muzzle","GunType_AR"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"SoundRange","display":1,"baseValue":null,"value":-0.5},{"key":"BulletDistance","display":1,"baseValue":null,"value":0.15}]}}

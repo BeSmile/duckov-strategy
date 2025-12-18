@@ -1,1 +1,1 @@
-{"base":{"typeID":764,"displayName":"Item_Plastics","icon":"PlasticMat.webp","maxStackCount":10,"value":21,"quality":1,"weight":0.02,"tags":["Tool","Special"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":764,"displayName":"Item_Plastics","icon":"PlasticMat.webp","maxStackCount":100,"value":21,"quality":1,"weight":0.02,"tags":["Tool","Special"],"constants":{"entries":[]}},"slots":null,"attributes":null}

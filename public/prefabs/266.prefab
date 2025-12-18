@@ -1,0 +1,1 @@
+{"base":{"typeID":266,"displayName":"Item_Magazine_Rifle_Lv_4","icon":"cross.webp","maxStackCount":1,"value":5000,"quality":999,"weight":0.25,"tags":["Accessory","Magazine","GunType_AR"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"Capacity","display":1,"baseValue":null,"value":1.0}]}}

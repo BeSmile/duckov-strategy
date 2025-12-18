@@ -1,1 +1,1 @@
-{"base":{"typeID":11,"displayName":"Item_BatteryPP3","icon":"Battery02.webp","maxStackCount":3,"value":323,"quality":2,"weight":0.12,"tags":["Electric"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":11,"displayName":"Item_BatteryPP3","icon":"Battery02.webp","maxStackCount":10,"value":323,"quality":2,"weight":0.12,"tags":["Electric"],"constants":{"entries":[]}},"slots":null,"attributes":null}

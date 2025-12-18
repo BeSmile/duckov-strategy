@@ -1,1 +1,1 @@
-{"base":{"typeID":28,"displayName":"Item_Nail","icon":"Nail.webp","maxStackCount":10,"value":149,"quality":1,"weight":0.05,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":28,"displayName":"Item_Nail","icon":"Nail.webp","maxStackCount":50,"value":149,"quality":1,"weight":0.05,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}

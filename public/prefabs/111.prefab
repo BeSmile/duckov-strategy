@@ -1,1 +1,1 @@
-{"base":{"typeID":111,"displayName":"Item_Trophy","icon":"trophy.webp","maxStackCount":1,"value":2837,"quality":4,"weight":2.03,"tags":["Luxury","Daily"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":111,"displayName":"Item_Trophy","icon":"trophy.webp","maxStackCount":1,"value":2837,"quality":4,"weight":2.03,"tags":["Luxury","Daily","Collection"],"constants":{"entries":[]}},"slots":null,"attributes":null}

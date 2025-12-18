@@ -1,1 +1,1 @@
-{"base":{"typeID":334,"displayName":"Item_Bulb2","icon":"EnergySavingBulb.webp","maxStackCount":3,"value":827,"quality":3,"weight":0.3,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":334,"displayName":"Item_Bulb2","icon":"EnergySavingBulb.webp","maxStackCount":20,"value":827,"quality":3,"weight":0.3,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}

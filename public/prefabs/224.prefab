@@ -1,0 +1,1 @@
+{"base":{"typeID":224,"displayName":"Item_Stock_Sniper_Lv_3","icon":"cross.webp","maxStackCount":1,"value":2100,"quality":999,"weight":0.7,"tags":["Accessory","Stock","GunType_SNP"],"constants":{"entries":[]}},"slots":null,"attributes":{"list":[{"key":"DefaultScatter","display":1,"baseValue":null,"value":-0.25}]}}

@@ -1,1 +1,1 @@
-{"base":{"typeID":332,"displayName":"Item_Bolt","icon":"Bolt.webp","maxStackCount":10,"value":193,"quality":1,"weight":0.15,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":332,"displayName":"Item_Bolt","icon":"Bolt.webp","maxStackCount":50,"value":193,"quality":1,"weight":0.15,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}

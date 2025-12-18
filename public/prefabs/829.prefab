@@ -1,1 +1,1 @@
-{"base":{"typeID":829,"displayName":"Item_Key_MysteryZ","icon":"Key4C.webp","maxStackCount":1,"value":500,"quality":9,"weight":0.2,"tags":["SpecialKey","Key"],"constants":{"entries":[{"key":"MaxDurability","dataType":1,"data":"00002041","display":0}]}},"slots":null,"attributes":null}
+{"base":{"typeID":829,"displayName":"Item_Key_MysteryZ","icon":"Key4C.webp","maxStackCount":1,"value":104748,"quality":9,"weight":0.2,"tags":["SpecialKey","Key"],"constants":{"entries":[{"key":"MaxDurability","dataType":1,"data":"00002041","display":0}]}},"slots":null,"attributes":null}

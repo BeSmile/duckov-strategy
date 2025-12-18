@@ -1,1 +1,1 @@
-{"base":{"typeID":362,"displayName":"Item_MetalSlice","icon":"MetalSlice.webp","maxStackCount":10,"value":89,"quality":1,"weight":0.2,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}
+{"base":{"typeID":362,"displayName":"Item_MetalSlice","icon":"MetalSlice.webp","maxStackCount":50,"value":89,"quality":1,"weight":0.2,"tags":["Tool"],"constants":{"entries":[]}},"slots":null,"attributes":null}
