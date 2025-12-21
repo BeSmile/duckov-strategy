@@ -43,3 +43,16 @@ Tag_SoulCube,灵魂方块
 Tag_SpecialKey,特殊钥匙
 Tag_Sticky,粘性物品
 Tag_Western,西部风格
+Tag_Acc_Candy,糖果枪专用
+Tag_SpecialAcc,特殊配件
+Tag_Acc_PP19Bizon,Bizon-2专用
+Tag_Acc_M14,M14专用
+Tag_Acc_RPD,RPD专用
+Tag_Acc_CubeGun,能量枪专用
+Tag_Acc_SKS,SKS-45专用
+Tag_Acc_Mosin,Mosin-Nagant专用
+Tag_Acc_Glick,格力克专用
+Tag_Acc_Aug,StG 77专用
+Tag_Acc_ArcadeGun,玩具枪专用
+Tag_SnowLand,雪地
+Tag_Acc_AHBow,反曲弓

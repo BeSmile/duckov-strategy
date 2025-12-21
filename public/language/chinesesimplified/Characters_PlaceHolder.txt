@@ -5,7 +5,8 @@ Cname_Prison_Boss,典狱长
 Cname_Prison,近战狱卒
 Cname_Boss_Fly,蝇蝇队长
 Cname_Boss_Fly_Child,蝇蝇成员
-Cname_3Shot_Child,三枪哥
+Cname_Boss_3Shot,三枪哥
+Cname_3Shot_Child,三枪弟
 Cname_Boss_Arcade,暴走街机
 Cname_StormCreature,风暴生物
 Cname_SenorEngineer,高级工程师
@@ -34,3 +35,12 @@ Cname_LabTestObjective,LAB测试对象
 Cname_Boss_Red,????
 Cname_Football_2,球员
 Item_Bait1,Item_Bait1
+Character_SnowPMC,煤球
+Cname_Speedy_Ice,急冻团长
+Cname_SpeedyChild_Ice,急冻团长成员
+Cname_Snow_BigIce,大冰冰
+Character_Fo,佛哥
+Cname_StormVirus,风暴？
+Cname_MonsterClimb,风暴虫
+EnemyPreset_Basement,内置敌人对象
+
