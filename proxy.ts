@@ -1,9 +1,5 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { getLocale, setCookie } from '@/app/actions/cookies';
-import { defaultLanguage, Language } from '@/app/i18n/config';
-import { LANG_KEY } from '@/app/constants';
-import { parseLang } from '@/app/utils/lang';
 import createMiddleware from 'next-intl/middleware';
 import { routing } from '@/app/i18n/routing';
 
@@ -23,21 +19,6 @@ export async function proxy(request: NextRequest) {
     ) {
         return NextResponse.next();
     }
-
-    const langs = request.headers.get('accept-language') || defaultLanguage;
-    const language = langs?.split(",")?.[0] as Language || defaultLanguage;
-    let cookieLocale = await getLocale();
-    if (decodeURIComponent(cookieLocale).indexOf(",") >= 0 || !cookieLocale) {
-        cookieLocale = parseLang(language);
-    }
-    await setCookie(LANG_KEY, cookieLocale);
-
-
-    const response = NextResponse.next();
-
-    // 将当前路径存入 header
-    response.headers.set('x-current-pathname', pathname);
-    response.headers.set('x-current-url', request.url);
 
     return intlMiddleware(request);
 }

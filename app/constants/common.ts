@@ -9,8 +9,8 @@ export const BUFF_KEY = 'Buffs' as const;
 export const languages = {
     'zh-CN': { name: '简体中文', dir: 'chinesesimplified' },
     'zh-TW': { name: '繁體中文', dir: 'chinesetraditional' },
-    'ja': { name: '日本語', dir: 'japanese' },
-    'en': { name: 'English', dir: 'english' },
+    ja: { name: '日本語', dir: 'japanese' },
+    en: { name: 'English', dir: 'english' },
 } as const;
 
 export const LOCALES = Object.keys(languages);

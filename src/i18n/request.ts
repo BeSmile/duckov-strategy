@@ -1,8 +1,8 @@
 import { getRequestConfig } from 'next-intl/server';
-import { BUFF_KEY, CHARACTER_KEY, ITEM_KEY, TAG_KEY } from '@/app/constants';
+import { BUFF_KEY, CHARACTER_KEY, ITEM_KEY, LANG_KEY, LOCALES, TAG_KEY } from '@/app/constants';
 import { generateKeyValueFetch } from '@/app/utils/request';
-import { defaultLanguage, Language, languageKeys } from '@/app/i18n/config';
-import { notFound } from 'next/navigation';
+import { defaultLanguage, Language } from '@/app/i18n/config';
+import { cookies, headers } from 'next/headers';
 
 const fetchBuffsLangs = generateKeyValueFetch(BUFF_KEY);
 const fetchTagsLangs = generateKeyValueFetch(TAG_KEY);
@@ -13,16 +13,21 @@ export default getRequestConfig(async ({ locale  }) => {
 
     // 处理非国际化路径（sitemap, robots, api 等）
     if (!locale) {
-        return {
-            locale: defaultLanguage,
-            messages: {},
-            timeZone: 'Asia/Shanghai',
-            now: new Date(),
-        };
+        const cookieStore = await cookies();
+        locale = cookieStore.get(LANG_KEY)?.value;
     }
 
-    if (!languageKeys.includes(locale as Language)) {
-        notFound();
+    // 如果还没有，尝试从 Accept-Language header 获取
+    if (!locale) {
+        const headersList = await headers();
+        const acceptLanguage = headersList.get('accept-language');
+        // 简单解析，实际可能需要更复杂的逻辑
+        locale = acceptLanguage?.split(',')[0]?.split('-')[0];
+    }
+
+    // 验证 locale 是否有效
+    if (!locale || !LOCALES.includes(locale)) {
+        locale = defaultLanguage;
     }
 
     const lang = locale as Language;

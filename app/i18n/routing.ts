@@ -13,4 +13,5 @@ export const routing = defineRouting({
         // Expire in one year
         maxAge: 60 * 60 * 24 * 365
     },
+    localeDetection: true,
 });

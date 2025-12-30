@@ -63,7 +63,7 @@ export default function Header({ locale }: HeaderProps) {
                             ))}
                         </div>
                         <ThemeSwitcher />
-                        <LanguageSwitcher locale={locale} />
+                        <LanguageSwitcher/>
                     </div>
                 </div>
             </nav>
