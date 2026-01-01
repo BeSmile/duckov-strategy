@@ -114,13 +114,13 @@ pub fn get_maps() -> JsValue {
             path: "Scenes/Base_SceneV2.unity".to_string(),
             disabled_ids: vec![],
         },
-        MapInfo {
-            id: 1014,
-            name: "Base_SceneV2_Sub_01".to_string(),
-            cn: "主场景地下通道".to_string(),
-            path: "Scenes/Base_SceneV2_Sub_01.unity".to_string(),
-            disabled_ids: vec![],
-        },
+        // MapInfo {
+        //     id: 1014,
+        //     name: "Base_SceneV2_Sub_01".to_string(),
+        //     cn: "主场景地下通道".to_string(),
+        //     path: "Scenes/Base_SceneV2_Sub_01.unity".to_string(),
+        //     disabled_ids: vec![],
+        // },
     ];
     serde_wasm_bindgen::to_value(&maps).unwrap()
 }
