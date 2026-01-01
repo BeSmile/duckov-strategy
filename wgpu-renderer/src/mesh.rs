@@ -1,7 +1,7 @@
 use cgmath::{Matrix4, Point3, Transform};
 use wgpu::{BufferAddress, Device, SurfaceConfiguration};
 use wgpu::util::DeviceExt;
-use crate::entity::{InstanceRaw, IVertex, Vertex, VertexBufferLayoutOwned, VertexColor, VertexColorFloat3x4U8, VertexColorUVFloat32, VertexColorUVx3Float32, VertexFloat32, VertexTexUvFloat32, VertexUvFloat1632, VertexFloat16x4Float, VertexFloat32x6};
+use crate::entity::{InstanceRaw, IVertex, Vertex, VertexBufferLayoutOwned, VertexColor, VertexColorFloat3x4U8, VertexColorUVFloat32, VertexColorUVx3Float32, VertexFloat32, VertexTexUvFloat32, VertexUvFloat1632, VertexFloat16x4Float, VertexFloat32x6, VertexColorUv32, VertexColorUv32f};
 use crate::materials::{Material, Texture};
 use crate::resource::MeshId;
 use crate::scene::Scene;
@@ -253,6 +253,31 @@ impl Mesh{
                 // 检查字节数是否是顶点大小的整数倍
                 assert_eq!(bytes.len() % std::mem::size_of::<VertexFloat16x4Float>(), 0);
                 let vertices: &[VertexFloat16x4Float] = bytemuck::cast_slice(&bytes);
+
+                let mut vertices = vertices.to_vec();
+
+                vertices.iter_mut().for_each(|v| v.flip_z_axis());
+
+                // println!("detect_uv_mapping_32_type(&vertices) :{}", Vertex::detect_uv_mapping_type(&vertices));
+                bytemuck::cast_slice(&vertices).to_vec()
+            }
+            76 => {
+                // 检查字节数是否是顶点大小的整数倍
+                assert_eq!(bytes.len() % std::mem::size_of::<VertexColorUv32>(), 0);
+                let vertices: &[VertexColorUv32] = bytemuck::cast_slice(&bytes);
+
+                let mut vertices = vertices.to_vec();
+
+                vertices.iter_mut().for_each(|v| v.flip_z_axis());
+
+                // println!("detect_uv_mapping_32_type(&vertices) :{}", Vertex::detect_uv_mapping_type(&vertices));
+                println!("Vertex sizeof: {} count: {}", size_of, vertices.len());
+                bytemuck::cast_slice(&vertices).to_vec()
+            }
+            72 => {
+                // 检查字节数是否是顶点大小的整数倍
+                assert_eq!(bytes.len() % std::mem::size_of::<VertexColorUv32f>(), 0);
+                let vertices: &[VertexColorUv32f] = bytemuck::cast_slice(&bytes);
 
                 let mut vertices = vertices.to_vec();
 

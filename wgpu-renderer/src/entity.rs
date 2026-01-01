@@ -129,6 +129,28 @@ pub struct VertexUvFloat1632 { // size_of: 40
     uv_coords: [f32; 2],// uv1坐标
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct VertexColorUv32 { // size_of: 78
+    position: [f32; 3],
+    normal: [f32; 3], // 法线
+    tangent: [f32; 4],
+    color: [u8; 4], // 颜色
+    tex_coords: [f32; 4],// uv0坐标
+    uv_coords: [f32; 4],// uv1坐标
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct VertexColorUv32f { // size_of: 72
+    position: [f32; 3],   // offset 0,  12 bytes
+    normal: [f32; 3],     // offset 12, 12 bytes
+    tangent: [f32; 4],    // offset 24, 16 bytes
+    color: [f32; 4],      // offset 40, 16 bytes
+    tex_coords: [f32; 2], // offset 56, 8 bytes
+    tex_coords1: [f32; 2],// offset 64, 8 bytes
+}
+
 pub trait IVertex {
     fn flip_z_axis(&mut self);
 }
@@ -378,6 +400,59 @@ impl IVertex for VertexUvFloat1632 {
         // 使用fract()获取小数部分，映射到[0,1]
         self.uv_coords[0] = u1.fract().abs();
         self.uv_coords[1] = v1.fract().abs();
+    }
+}
+
+impl IVertex for VertexColorUv32 {
+    fn flip_z_axis(&mut self) {
+        // 翻转Z轴（位置）
+        self.position[2] = -self.position[2];
+        // 翻转法线Z
+        self.normal[2] = -self.normal[2];
+
+        // 翻转切线Z和手性
+        self.tangent[2] = -self.tangent[2];
+        self.tangent[3] = -self.tangent[3];
+
+        let u = self.tex_coords[0];
+        let v = self.tex_coords[1];
+
+        // 使用fract()获取小数部分，映射到[0,1]
+        self.tex_coords[0] = u.fract().abs();
+        self.tex_coords[1] = v.fract().abs();
+
+        let u1 = self.uv_coords[0];
+        let v1 = self.uv_coords[1];
+
+        // 使用fract()获取小数部分，映射到[0,1]
+        self.uv_coords[0] = u1.fract().abs();
+        self.uv_coords[1] = v1.fract().abs();
+    }
+}
+impl IVertex for VertexColorUv32f {
+    fn flip_z_axis(&mut self) {
+        // 翻转Z轴（位置）
+        self.position[2] = -self.position[2];
+        // 翻转法线Z
+        self.normal[2] = -self.normal[2];
+
+        // 翻转切线Z和手性
+        self.tangent[2] = -self.tangent[2];
+        self.tangent[3] = -self.tangent[3];
+
+        let u = self.tex_coords[0];
+        let v = self.tex_coords[1];
+
+        // 使用fract()获取小数部分，映射到[0,1]
+        self.tex_coords[0] = u.fract().abs();
+        self.tex_coords[1] = v.fract().abs();
+
+        let u1 = self.tex_coords1[0];
+        let v1 = self.tex_coords1[1];
+
+        // 使用fract()获取小数部分，映射到[0,1]
+        self.tex_coords1[0] = u1.fract().abs();
+        self.tex_coords1[1] = v1.fract().abs();
     }
 }
 
