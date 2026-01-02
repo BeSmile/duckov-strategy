@@ -328,6 +328,10 @@ impl Camera {
         self.target = target;
     }
 
+    pub fn set_eye(&mut self, eye: Point3<f32>) {
+        self.eye = eye;
+    }
+
     pub fn eye(&self) -> &Point3<f32> {
         &self.eye
     }
@@ -344,7 +348,6 @@ impl Camera {
             view_position: self.eye.into(),
             _padding: 0.0,
         };
-        // println!("camera view_position: {:#?}", self.eye);
 
         queue.write_buffer(
             &self.uniform_buffer,

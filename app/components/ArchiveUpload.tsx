@@ -456,7 +456,7 @@ export const ArchiveUpload: React.FC<ArchiveUploadProps> = ({
             const arrayBuffer = await file.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
 
-            const wasm = await import('@/savefile-parse/pkg/');
+            const wasm = await import('@/public/wasm-save/');
             await wasm.default();
 
             const resultJson = wasm.process_file(uint8Array);

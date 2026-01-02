@@ -1,0 +1,76 @@
+name: Build WASM Modules
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - 'wgpu-renderer/**'
+      - 'savefile-parse/**'
+      - '.github/workflows/build-wasm.yml'
+  pull_request:
+    branches:
+      - master
+      - main
+    paths:
+      - 'wgpu-renderer/**'
+      - 'savefile-parse/**'
+      - '.github/workflows/build-wasm.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            wgpu-renderer/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build WGPU Renderer
+        run: |
+          cd wgpu-renderer
+          wasm-pack build --target web --out-dir ../public/wasm
+
+      - name: Build Savefile Parser
+        run: |
+          cd savefile-parse
+          wasm-pack build --target web --out-dir ../public/wasm-save
+
+      - name: Upload WASM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-build
+          path: |
+            public/wasm/
+            public/wasm-save/
+          retention-days: 30
+
+      - name: Commit and push if changed
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add public/wasm/ public/wasm-save/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "build: update wasm build artifacts" && git push)

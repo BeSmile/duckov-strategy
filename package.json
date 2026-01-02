@@ -9,8 +9,9 @@
         "lint": "eslint",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
-        "build:game": "cd wgpu-renderer && wasm-pack build --target web",
-        "build:save": "cd savefile-parse && wasm-pack build --target web"
+        "build:game": "cd wgpu-renderer && wasm-pack build --target web --out-dir ../public/wasm",
+        "build:save": "cd savefile-parse && wasm-pack build --target web --out-dir ../public/wasm-save",
+        "build:wasm": "npm run build:game && npm run build:save"
     },
     "dependencies": {
         "@radix-ui/react-dialog": "^1.1.15",

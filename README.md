@@ -84,6 +84,8 @@ duckov-strategy/
 │   ├── images/               # 物品图标（613 张）
 │   ├── prefabs/              # 物品数据（1294 个文件）
 │   ├── language/             # 游戏多语言文件
+│   ├── wasm/                 # WebGPU 渲染器构建产物
+│   ├── wasm-save/            # 存档解析器构建产物
 │   ├── items.json            # 物品数据（24,972 行）
 │   ├── loot.json             # 掉落数据（24,959 行）
 │   └── quest.json            # 任务数据（7,021 行）
@@ -124,11 +126,14 @@ npm run dev
 # 构建生产版本
 npm run build
 
-# 构建游戏渲染器（WASM）
+# 构建游戏渲染器（WASM）-> public/wasm
 npm run build:game
 
-# 构建存档解析器（WASM）
+# 构建存档解析器（WASM）-> public/wasm-save
 npm run build:save
+
+# 构建所有 WASM 模块
+npm run build:wasm
 ```
 
 ### 代码规范
@@ -171,7 +176,7 @@ npm run format
 
 ```bash
 cd wgpu-renderer
-wasm-pack build --target web
+wasm-pack build --target web --out-dir ../public/wasm
 ```
 
 功能模块：
@@ -180,17 +185,28 @@ wasm-pack build --target web
 - 相机控制系统
 - 光照与材质
 
+构建产物输出到 `public/wasm/` 目录
+
 #### 存档解析器（savefile-parse）
 
 ```bash
 cd savefile-parse
-wasm-pack build --target web
+wasm-pack build --target web --out-dir ../public/wasm-save
 ```
 
 功能：
 - 读取二进制存档
 - 提取游戏数据
 - JSON 格式化
+
+构建产物输出到 `public/wasm-save/` 目录
+
+#### GitHub Actions 自动构建
+
+项目配置了 GitHub Actions 工作流，当 `wgpu-renderer/` 或 `savefile-parse/` 目录有更改时：
+- 自动构建 WASM 模块
+- 上传构建产物为 artifacts
+- 推送到 master 分支时自动提交构建产物
 
 ### 数据更新流程
 

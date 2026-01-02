@@ -27,9 +27,15 @@ use wasm_bindgen::prelude::*;
 fn format_url(file_name: &str) -> reqwest::Url {
     let window = web_sys::window().unwrap();
     let location = window.location();
+    #[cfg(debug_assertions)]
+    const API_URL: &str = "http://localhost:8000";
+
+    #[cfg(not(debug_assertions))]
+    const API_URL: &str = "https://localhost:8000";
+
     let base = reqwest::Url::parse(&format!(
         "{}/",
-        "http://192.168.50.79:8000",
+        API_URL,
     )).unwrap();
     base.join(file_name).unwrap()
 }
@@ -177,7 +183,6 @@ async fn save_file_in_dir(
 fn transfer_file(file_path: &str)  -> anyhow::Result<Vec<u8>> {
     dotenv::dotenv().ok();
     let output_path = env::var("TARGET_PROJECT")?;
-    let transfer: bool = env::var("TRANSFER")?.parse().unwrap_or(false);
 
     // 构建目标路径
     let target_path = PathBuf::from(&output_path).join(file_path);
@@ -185,12 +190,16 @@ fn transfer_file(file_path: &str)  -> anyhow::Result<Vec<u8>> {
     if let Some(parent) = target_path.parent() {
         fs::create_dir_all(parent)?;
     }
+
+    let transfer: bool = env::var("TRANSFER")?.parse().unwrap_or(false);
+
     // 如果需要转移文件，则复制
     if transfer {
-        let output_path = env::var("TARGET_PROJECT")?;
+        let output_path = env::var("GAME_PROJECT_PATH")?;
         let source_file = Path::new(&output_path).join(&file_path);
+        info!("Transferred file: {} -> {:?}", &source_file.display(), &target_path);
+
         fs::copy(source_file, &target_path)?;
-        info!("Transferred file: {} -> {:?}", file_path, target_path);
     }
 
     // 读取并返回文件内容
@@ -201,6 +210,22 @@ fn transfer_file(file_path: &str)  -> anyhow::Result<Vec<u8>> {
 pub type MeshId = String;
 pub type MaterialId = String;
 
+/// 资源加载状态
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResourceLoadState {
+    Unloaded,  // 未加载
+    Loading,   // 加载中
+    Loaded,    // 已加载
+    Unloading, // 卸载中
+}
+
+/// 资源使用信息（用于LRU淘汰）
+#[derive(Debug, Clone)]
+struct ResourceUsageInfo {
+    last_used_frame: u64,  // 最后使用的帧数
+    load_state: ResourceLoadState,
+}
+
 #[derive(Debug)]
 pub struct ResourceManager {
     materials: HashMap<Entity, Arc<Material>>,
@@ -210,11 +235,33 @@ pub struct ResourceManager {
     manifest: HashMap<String, String>,
     texture_manifest: HashMap<String, Arc<Texture>>,
     white_texture: Arc<Texture>,
+
+    // 资源使用追踪（用于动态卸载）
+    mesh_usage: HashMap<MeshId, ResourceUsageInfo>,
+    material_usage: HashMap<MaterialId, ResourceUsageInfo>,
+    texture_usage: HashMap<String, ResourceUsageInfo>,
+
+    // 当前帧数（用于LRU）
+    pub current_frame: u64,
+
+    // 卸载配置
+    unload_delay_frames: u64,  // 多少帧未使用后卸载（默认300帧，约5秒）
 }
 
 impl ResourceManager {
     pub fn new(device: &Device, queue: &Queue) -> Self {
         let white_texture = Texture::create_dummy_white(device, queue);
+
+        // 从环境变量读取卸载延迟配置
+        #[cfg(not(target_arch = "wasm32"))]
+        let unload_delay_frames = std::env::var("RESOURCE_UNLOAD_DELAY_FRAMES")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(300);
+
+        #[cfg(target_arch = "wasm32")]
+        let unload_delay_frames = 300; // WASM默认300帧
+
         Self{
             materials: Default::default(),
             meshes: Default::default(),
@@ -223,11 +270,20 @@ impl ResourceManager {
             manifest: HashMap::default(),
             texture_manifest: Default::default(),
             white_texture: Arc::new(white_texture),
+
+            mesh_usage: HashMap::new(),
+            material_usage: HashMap::new(),
+            texture_usage: HashMap::new(),
+            current_frame: 0,
+            unload_delay_frames,
         }
     }
     
     pub async fn loading_mapping(&mut self) -> anyhow::Result<()>{
-        let guids = Self::load_binary("guid.json").await?;
+        let guids = Self::load_binary("guid.json").await.map_err(|e| {
+            info!("Failed to load guid: {}", e);
+            e
+        })?;
         
         self.manifest = serde_json::from_str(std::str::from_utf8(&guids)?)?;
         Ok(())
@@ -238,44 +294,27 @@ impl ResourceManager {
         #[cfg(target_arch = "wasm32")]
         let data = {
             // 首先尝试从 OPFS 缓存读取
-            if let Some(cached_data) = get_from_opfs(file_name).await {
-                info!("Loaded from OPFS cache: {}", file_name);
-                cached_data
-            } else {
-                // 如果缓存不存在，从网络获取
-                info!("Fetching from network: {}", file_name);
-                let url = format_url(file_name);
-                let response_data = reqwest::get(url).await?.bytes().await?.to_vec();
-
-                // 异步保存到 OPFS（不等待完成）
-                let data_clone = response_data.clone();
-                let file_name_clone = file_name.to_string();
-                wasm_bindgen_futures::spawn_local(async move {
-                    if save_to_opfs(&file_name_clone, &data_clone).await.is_ok() {
-                        info!("Saved to OPFS cache: {}", file_name_clone);
-                    } else {
-                        info!("Failed to save to OPFS cache: {}", file_name_clone);
-                    }
-                });
-
-                response_data
-            }
-
+            // if let Some(cached_data) = get_from_opfs(file_name).await {
+            //     info!("Loaded from OPFS cache: {}", file_name);
+            //     cached_data
+            // } else {
+            //
+            // }
             // 如果缓存不存在，从网络获取
-            // info!("Fetching from network: {}", file_name);
-            // let url = format_url(file_name);
-            // let response_data = reqwest::get(url).await?.bytes().await?.to_vec();
+            info!("Fetching from network: {}", file_name);
+            let url = format_url(file_name);
+            let response_data = reqwest::get(url).await?.bytes().await?.to_vec();
 
             // 异步保存到 OPFS（不等待完成）
             let data_clone = response_data.clone();
             let file_name_clone = file_name.to_string();
-            wasm_bindgen_futures::spawn_local(async move {
-                if save_to_opfs(&file_name_clone, &data_clone).await.is_ok() {
-                    info!("Saved to OPFS cache: {}", file_name_clone);
-                } else {
-                    info!("Failed to save to OPFS cache: {}", file_name_clone);
-                }
-            });
+            // wasm_bindgen_futures::spawn_local(async move {
+            //     if save_to_opfs(&file_name_clone, &data_clone).await.is_ok() {
+            //         info!("Saved to OPFS cache: {}", file_name_clone);
+            //     } else {
+            //         info!("Failed to save to OPFS cache: {}", file_name_clone);
+            //     }
+            // });
 
             response_data
         };
@@ -283,13 +322,12 @@ impl ResourceManager {
         let data = {
             dotenv::dotenv().ok();
 
-            let target_key = "TARGET_PROJECT";
+            let target_key = "GAME_PROJECT_PATH";// guid json保存至提取文件目录底下
             let target_path = env::var(target_key).map_err(|e| {
                 error!("Failed to get target path for '{}': {:?}", file_name, e);
                 e
             })?;
             let path = Path::new(&target_path).join(file_name);
-            
             fs::read(path.clone()).map_err(|e| {
                 info!("Loaded binary filename: {}, origin_path: {:?}, path: {:?}", file_name, &path.to_str(), Path::new(env!("OUT_DIR")).join("res").join(file_name));
                 e
@@ -311,7 +349,7 @@ impl ResourceManager {
     pub async fn load_mesh(&mut self, m_mesh: &UnityReference, entity: Entity, device: &Device, scene: &Scene, material: &Material, config: &SurfaceConfiguration) -> anyhow::Result<u32> {
         let guid = &m_mesh.guid;
         let file_id = &m_mesh.file_id;
-        println!("Loading mesh {:?}", m_mesh);
+        // println!("Loading mesh {:?}", m_mesh);
 
         let mesh: Arc<Mesh> = if let Some(mesh) = self.has_mesh(guid) {
             mesh
@@ -439,5 +477,147 @@ impl ResourceManager {
     }
     pub fn get_white_texture(&self) -> Arc<Texture> {
         Arc::clone(&self.white_texture)
+    }
+
+    // ==================== 动态资源管理方法 ====================
+
+    /// 更新帧数（每帧调用一次）
+    pub fn update_frame(&mut self) {
+        self.current_frame += 1;
+    }
+
+    /// 标记网格资源被使用（更新LRU时间戳）
+    pub fn mark_mesh_used(&mut self, mesh_id: &MeshId) {
+        self.mesh_usage.entry(mesh_id.clone())
+            .and_modify(|info| info.last_used_frame = self.current_frame)
+            .or_insert(ResourceUsageInfo {
+                last_used_frame: self.current_frame,
+                load_state: ResourceLoadState::Loaded,
+            });
+    }
+
+    /// 标记材质资源被使用
+    pub fn mark_material_used(&mut self, material_id: &MaterialId) {
+        self.material_usage.entry(material_id.clone())
+            .and_modify(|info| info.last_used_frame = self.current_frame)
+            .or_insert(ResourceUsageInfo {
+                last_used_frame: self.current_frame,
+                load_state: ResourceLoadState::Loaded,
+            });
+    }
+
+    /// 标记纹理资源被使用
+    pub fn mark_texture_used(&mut self, texture_id: &str) {
+        self.texture_usage.entry(texture_id.to_string())
+            .and_modify(|info| info.last_used_frame = self.current_frame)
+            .or_insert(ResourceUsageInfo {
+                last_used_frame: self.current_frame,
+                load_state: ResourceLoadState::Loaded,
+            });
+    }
+
+    /// 卸载长时间未使用的网格资源
+    pub fn unload_unused_meshes(&mut self) {
+        let current_frame = self.current_frame;
+        let delay = self.unload_delay_frames;
+
+        // 收集需要卸载的网格
+        let to_unload: Vec<MeshId> = self.mesh_usage.iter()
+            .filter(|(_, info)| {
+                info.load_state == ResourceLoadState::Loaded &&
+                current_frame - info.last_used_frame > delay
+            })
+            .map(|(id, _)| id.clone())
+            .collect();
+
+        // 卸载网格
+        for mesh_id in &to_unload {
+            if let Some(mesh) = self.mesh_manifest.remove(mesh_id) {
+                // Arc会在引用计数归零时自动释放GPU资源
+                drop(mesh);
+
+                // 更新状态为已卸载
+                if let Some(info) = self.mesh_usage.get_mut(mesh_id) {
+                    info.load_state = ResourceLoadState::Unloaded;
+                }
+
+                #[cfg(debug_assertions)]
+                println!("Unloaded mesh: {}", mesh_id);
+            }
+        }
+    }
+
+    /// 卸载长时间未使用的材质资源
+    pub fn unload_unused_materials(&mut self) {
+        let current_frame = self.current_frame;
+        let delay = self.unload_delay_frames;
+
+        let to_unload: Vec<MaterialId> = self.material_usage.iter()
+            .filter(|(_, info)| {
+                info.load_state == ResourceLoadState::Loaded &&
+                current_frame - info.last_used_frame > delay
+            })
+            .map(|(id, _)| id.clone())
+            .collect();
+
+        for material_id in &to_unload {
+            if let Some(material) = self.material_manifest.remove(material_id) {
+                drop(material);
+
+                if let Some(info) = self.material_usage.get_mut(material_id) {
+                    info.load_state = ResourceLoadState::Unloaded;
+                }
+
+                #[cfg(debug_assertions)]
+                println!("Unloaded material: {}", material_id);
+            }
+        }
+    }
+
+    /// 卸载长时间未使用的纹理资源
+    pub fn unload_unused_textures(&mut self) {
+        let current_frame = self.current_frame;
+        let delay = self.unload_delay_frames;
+
+        let to_unload: Vec<String> = self.texture_usage.iter()
+            .filter(|(_, info)| {
+                info.load_state == ResourceLoadState::Loaded &&
+                current_frame - info.last_used_frame > delay
+            })
+            .map(|(id, _)| id.clone())
+            .collect();
+
+        for texture_id in &to_unload {
+            if let Some(texture) = self.texture_manifest.remove(texture_id) {
+                drop(texture);
+
+                if let Some(info) = self.texture_usage.get_mut(texture_id) {
+                    info.load_state = ResourceLoadState::Unloaded;
+                }
+
+                #[cfg(debug_assertions)]
+                println!("Unloaded texture: {}", texture_id);
+            }
+        }
+    }
+
+    /// 卸载所有未使用的资源（统一调用）
+    pub fn unload_all_unused_resources(&mut self) {
+        self.unload_unused_meshes();
+        self.unload_unused_materials();
+        self.unload_unused_textures();
+    }
+
+    /// 获取资源使用统计信息
+    pub fn get_resource_stats(&self) -> (usize, usize, usize, usize, usize, usize) {
+        let loaded_meshes = self.mesh_manifest.len();
+        let loaded_materials = self.material_manifest.len();
+        let loaded_textures = self.texture_manifest.len();
+
+        let total_meshes = self.mesh_usage.len();
+        let total_materials = self.material_usage.len();
+        let total_textures = self.texture_usage.len();
+
+        (loaded_meshes, total_meshes, loaded_materials, total_materials, loaded_textures, total_textures)
     }
 }

@@ -24,6 +24,7 @@ use crate::unity::{
 use std::time::Instant;
 #[cfg(target_arch = "wasm32")]
 use web_time::Instant;
+use crate::stat::{set_loading_state, SceneLoadingState};
 
 pub struct PipelineManager {
     pipelines: HashMap<PipelineId, wgpu::RenderPipeline>,
@@ -48,7 +49,8 @@ pub struct Scene {
     pub background_color: wgpu::Color,
 
     pub entities: Vec<Entity>,                 // 存档所有的实体类key
-    entity_display_map: HashMap<Entity, bool>, // true显示 false不显示
+    entity_display_map: HashMap<Entity, bool>, // entity的显示隐藏，true, false 隐藏， 但是隐藏的才会塞入，后续调整
+    entity_frustum_culling: HashMap<Entity, bool>,// true显示。false隐藏
 
     pub scene_bind_group_layout: wgpu::BindGroupLayout,
     scene_uniform_buffer: wgpu::Buffer,
@@ -68,6 +70,10 @@ pub struct Scene {
     // pub transform_bind_group: wgpu::BindGroup,
     // pub transform_bind_group_layout: wgpu::BindGroupLayout,
     entity_offsets: HashMap<Entity, u32>,
+
+    // 视锥剔除
+    pub frustum: crate::frustum::Frustum,
+    pub culling_enabled: bool,
 }
 
 // render一次批量
@@ -76,6 +82,7 @@ struct RenderBatch {
     pub material_id: MaterialId,
     pub entities: Vec<Entity>,                 // 属于这个批次的entities
     pub instance_buffer: Option<wgpu::Buffer>, // 延迟创建
+    pub instance_count: u32,                   // 实际创建的实例数量（用于draw_indexed）
 }
 
 pub struct RenderBatchSystem {
@@ -108,15 +115,17 @@ impl RenderBatchSystem {
         &mut self,
         device: &Device,
         transform_system: &TransformSystem,
-        // camera: &Camera,
-        // enable_frustum_culling: bool,
+        entity_display_map: &HashMap<Entity, bool>,
     ) {
-        // 更新instance_buffers
-
+        // 更新instance_buffers，同时应用视锥剔除
         for batch in self.batches.values_mut() {
             let instances: Vec<InstanceRaw> = batch
                 .entities
                 .iter()
+                .filter(|&&entity| {
+                    // 只处理可见的实体
+                    entity_display_map.get(&entity).copied().unwrap_or(true)
+                })
                 .filter_map(|&entity| {
                     let transform = transform_system.get_world_matrix(entity);
                     match transform {
@@ -129,8 +138,11 @@ impl RenderBatchSystem {
                 })
                 .collect();
 
+            let instance_count = instances.len() as u32;
+
             if instances.is_empty() {
                 batch.instance_buffer = None; // 全部被剔除
+                batch.instance_count = 0;
                 continue;
             }
             // 创建/更新instance buffer
@@ -141,6 +153,7 @@ impl RenderBatchSystem {
                     usage: wgpu::BufferUsages::VERTEX,
                 },
             ));
+            batch.instance_count = instance_count;
         }
     }
 
@@ -171,6 +184,7 @@ impl RenderBatchSystem {
                     material_id: material.id.clone(),
                     entities: Vec::new(),
                     instance_buffer: None,
+                    instance_count: 0,
                 })
                 .entities
                 .push(entity.clone());
@@ -239,6 +253,10 @@ impl Scene {
             aligned_size * max_entities as u64
         );
         
+        // 初始化视锥体（使用当前相机的view_proj矩阵）
+        let initial_view_proj = camera.get_projection_matrix();
+        let frustum = crate::frustum::Frustum::from_view_proj(&initial_view_proj);
+
         Scene {
             light_manager,
             camera,
@@ -258,8 +276,92 @@ impl Scene {
             // transforms_uniform_buffer,
             entity_offsets: HashMap::new(),
             entity_display_map: HashMap::new(),
+            entity_frustum_culling: HashMap::new(),
             render_batches: RenderBatchSystem::default(),
+            frustum,
+            culling_enabled:Self::get_culling_enabled(),
         }
+    }
+
+
+    /// 重新加载场景，清空所有实体和运行时状态，但保留 GPU 资源
+    pub fn reload(&mut self) {
+        info!("Reloading scene...");
+
+        // 清空实体列表
+        self.entities.clear();
+
+        // 重置时间
+        self.elapsed_time = Instant::now().elapsed().as_secs_f32();
+
+        // 重置 pipeline manager
+        self.pipeline_manager = PipelineManager::new();
+
+        // 重置 transform 系统
+        self.transform_system = TransformSystem::new();
+
+        // 清空映射表
+        self.entity_offsets.clear();
+        self.entity_display_map.clear();
+        self.entity_frustum_culling.clear();
+
+        // 重置渲染批次
+        self.render_batches = RenderBatchSystem::default();
+
+        // 重新初始化视锥体
+        let view_proj = self.camera.get_projection_matrix();
+        self.frustum = crate::frustum::Frustum::from_view_proj(&view_proj);
+
+        // 重新读取 culling 配置
+        self.culling_enabled = Self::get_culling_enabled();
+
+        // 重置背景色
+        self.background_color = get_background_color();
+
+        // 重置环境光
+        self.ambient_light = [0.9; 3];
+
+        info!("Scene reloaded successfully");
+    }
+
+    /// 完全重新初始化场景，包括重建 GPU 资源
+    pub fn reload_with_device(&mut self, device: &Device, config: &SurfaceConfiguration) {
+        info!("Reloading scene with new GPU resources...");
+
+        // 重建 light manager
+        self.light_manager = LightManager::new(device);
+
+        // 重建 camera
+        self.camera = Camera::new(device, config.width as f32 / config.height as f32);
+
+        // 重建 scene uniform buffer
+        // self.scene_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        //     label: Some("Scene Uniform Buffer"),
+        //     size: size_of::<SceneUniforms>() as wgpu::BufferAddress,
+        //     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        //     mapped_at_creation: false,
+        // });
+
+        // 重建 bind group
+        // self.scene_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        //     label: Some("Scene Bind Group"),
+        //     layout: &self.scene_bind_group_layout,
+        //     entries: &[wgpu::BindGroupEntry {
+        //         binding: 0,
+        //         resource: self.scene_uniform_buffer.as_entire_binding(),
+        //     }],
+        // });
+
+        // 调用基础 reload 清空运行时状态
+        self.reload();
+
+        info!("Scene reloaded with new GPU resources");
+    }
+
+    pub fn clear_entity(&mut self) {
+        self.entity_display_map.clear();
+        self.entity_frustum_culling.clear();
+        self.entity_offsets.clear();
     }
 
     pub fn pick_entity(&self, ray: &Ray, resource_manager: &ResourceManager) -> Option<(u32, f32)> {
@@ -285,6 +387,20 @@ impl Scene {
         }
 
         closest
+    }
+
+    fn get_culling_enabled() -> bool {
+        // 读取环境变量，默认启用剔除
+        #[cfg(not(target_arch = "wasm32"))]
+        let culling_enabled = std::env::var("ENABLE_FRUSTUM_CULLING")
+            .ok()
+            .and_then(|v| v.parse::<bool>().ok())
+            .unwrap_or(true);
+
+        #[cfg(target_arch = "wasm32")]
+        let culling_enabled = true;
+
+        culling_enabled
     }
 
     // 计算对齐后的 uniform 大小（必须是 256 的倍数）
@@ -477,13 +593,26 @@ impl Scene {
                 .await?;
         }
 
+        set_loading_state(SceneLoadingState::LoadingAssets, 0.7, "Loading Materials");
+
         scene.transform_system.update(&mut scene.entity_display_map);
+
+        // 根据culling_enable来判断是否开启来决定渲染的map
+        let display_map = if scene.culling_enabled {
+            &scene.entity_frustum_culling
+        } else {
+            &scene.entity_display_map
+        };
+
+        set_loading_state(SceneLoadingState::Setting, 0.8, "scene updated...");
+
         scene.render_batches.rebuild_batches(
             &scene.entities,
-            &scene.entity_display_map,
+            display_map,
             resource_manager,
         );
-        info!("scene rendered all {} entities", scene.entities.len());
+        set_loading_state(SceneLoadingState::Setting, 0.8, &format!("scene rendered all {} entities", scene.entities.len()));
+
         info!(
             "scene actually rendered all {} entities",
             scene.total_show_entities()
@@ -497,13 +626,14 @@ impl Scene {
         self.transform_system.add_transform(entity, transform);
     }
 
+    /// 游戏逻辑隐藏实体（不会被视锥剔除影响）
     pub fn hidden_entity(&mut self, entity: Entity) {
         self.entity_display_map.insert(entity, false);
     }
 
-    // 查看是否显示
-    pub fn is_display(&self, entity: &Entity) -> &bool {
-        self.entity_display_map.get(entity).unwrap_or(&true)
+    /// 查看实体是否被游戏逻辑隐藏
+    pub fn is_display_by_logic(&self, entity: &Entity) -> bool {
+        self.entity_display_map.get(entity).copied().unwrap_or(true)
     }
 
     pub fn add_pipelines(&mut self, pipeline_id: PipelineId, pipeline: wgpu::RenderPipeline) {
@@ -531,9 +661,13 @@ impl Scene {
     }
 
     // 更新-> 通过queue写入gpu buffer
-    pub fn update(&mut self, queue: &Queue, delta_time: f32) {
+    pub fn update(&mut self, queue: &Queue, delta_time: f32, resource_manager: &ResourceManager) {
         // 更新相机
         self.camera.update(queue, 0.0);
+
+        // 更新视锥体
+        let view_proj = self.camera.get_projection_matrix();
+        self.frustum = crate::frustum::Frustum::from_view_proj(&view_proj);
 
         // 更新光照
         self.light_manager.update_buffers(queue);
@@ -579,6 +713,64 @@ impl Scene {
         //     entity.update(delta_time);
         // }
 
+        // 视锥剔除：更新entity_display_map
+        // entity_frustum_culling 根据视锥 & 游戏实体显示推导的状态
+        // entity_display_map 存储游戏内实体显示状态
+        if self.culling_enabled {
+            let mut visible_count = 0;
+            let mut culled_count = 0;
+
+            for &entity in &self.entities {
+                // 获取游戏逻辑的隐藏状态（独立于视锥剔除）
+                let display_by_logic = self.is_display_by_logic(&entity);
+
+                // 计算视锥剔除结果
+                let frustum_visible = if let Some(mesh) = resource_manager.get_mesh(&entity) {
+                    if let Some(world_matrix) = self.transform_system.get_world_matrix(entity) {
+                        // 将AABB变换到世界坐标
+                        let world_aabb = mesh.aabb.transform(&world_matrix);
+
+                        // 测试是否在视锥内
+                        self.frustum.is_visible(&world_aabb)
+                    } else {
+                        false // 没有transform，默认通过视锥测试
+                    }
+                } else {
+                    false // 没有mesh，默认通过视锥测试
+                };
+
+                // 最终可见性 = 未被游戏逻辑隐藏 AND 在视锥内
+                let final_visible = display_by_logic && frustum_visible;
+                // 插入至实际渲染条件
+                self.entity_frustum_culling.insert(entity, final_visible);
+
+                // 统计（仅统计未被游戏逻辑隐藏的实体的剔除情况）
+                if display_by_logic {
+                    if frustum_visible {
+                        visible_count += 1;
+                    } else {
+                        culled_count += 1;
+                    }
+                }
+            }
+
+            // 打印剔除统计（可用于调试）
+            #[cfg(debug_assertions)]
+            {
+                if self.entities.len() > 0 && (visible_count + culled_count) > 0 {
+                    let total = visible_count + culled_count;
+                    let cull_percentage = (culled_count as f32 / total as f32) * 100.0;
+                    info!(
+                        "Frustum Culling: {}/{} visible ({:.1}% culled)",
+                        visible_count, total, cull_percentage
+                    );
+                }
+                // 打印相机信息
+                let camera_pos = *self.camera.eye();
+                info!("Camera position: ({:.2}, {:.2}, {:.2})", camera_pos.x, camera_pos.y, camera_pos.z);
+            }
+        }
+
         self.elapsed_time += delta_time;
     }
 
@@ -603,7 +795,7 @@ impl Scene {
     //     }
     // }
 
-    fn total_show_entities(&self) -> usize {
+    pub fn total_show_entities(&self) -> usize {
         // println!("total_show_entities: {:?}", &self.entity_display_map);
         self.entities.len()
             - self
@@ -618,9 +810,18 @@ impl Scene {
         device: &Device,
         render_pass: &mut wgpu::RenderPass<'a>,
         resource_manager: &'a ResourceManager,
-    ) {
+    ) -> Vec<(MeshId, MaterialId)> {
+        let display_map = if self.culling_enabled {
+            &self.entity_frustum_culling
+        } else {
+            &self.entity_display_map
+        };
+        // 更新实例缓冲（应用视锥剔除过滤）
         self.render_batches
-            .update_instance_buffers(device, &self.transform_system);
+            .update_instance_buffers(device, &self.transform_system, display_map);
+
+        // 收集本帧使用的资源ID（用于标记使用）
+        let mut used_resources = Vec::new();
 
         for batch in self.render_batches.batches.values() {
             let Some(instance_buffer) = &batch.instance_buffer else {
@@ -653,55 +854,15 @@ impl Scene {
             // print!("pipeline {},", batch.entities.len());
 
             render_pass.set_bind_group(2, &material.bind_group, &[]);
+            // info!("index_count: {:?}, 实例数: {:?}", mesh.index_count, batch.instance_count);
             // 创建pipeline 布局等等，设置buffer之类
-            render_pass.draw_indexed(0..mesh.index_count, 0, 0..batch.entities.len() as u32);
+            // 使用 instance_count 而不是 entities.len()，因为视锥剔除后实际实例数可能更少
+            render_pass.draw_indexed(0..mesh.index_count, 0, 0..batch.instance_count);
+
+            // 记录本帧使用的资源
+            used_resources.push((batch.mesh_id.clone(), batch.material_id.clone()));
         }
 
-        // println!("resource_manager: {:#?}", &resource_manager);
-        // 渲染实体
-        // for entity in &self.entities {
-        //     let hidden = self.entity_display_map.get(entity).unwrap_or(&false);
-        //     // 隐藏属性不展示
-        //     if *hidden == true {
-        //         continue;
-        //     }
-        //
-        //     // 从资源管理器获取 mesh
-        //     let Some(mesh) = resource_manager.get_mesh(entity) else {
-        //         // println!("Mesh does not exist for {:?}", entity);
-        //         continue; // 没有 mesh 就跳过
-        //     };
-        //
-        //     // 从资源管理器获取 material
-        //     let Some(material) = resource_manager.get_material(entity) else {
-        //         println!("Material does not exist for {:?}", entity);
-        //         continue;
-        //     };
-        //
-        //     // let Some(world_matrix) = self.transform_system.get_world_matrix(*entity) else {
-        //     //     println!("World matrix does not exist for {:?}", entity);
-        //     //     continue;
-        //     // };
-        //     let Some(&offset) = self.entity_offsets.get(&entity) else {
-        //         continue;
-        //     };
-        //
-        //     // 绑定模型特定的资源并渲染
-        //     render_pass.set_pipeline(&mesh.render_pipeline);
-        //     render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-        //     render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-        //
-        //     // 设置渲染管线- 动态管线
-        //     // bind_group全局资源
-        //     render_pass.set_bind_group(0, &self.camera.bind_group, &[]);
-        //     render_pass.set_bind_group(1, &self.scene_bind_group, &[]);
-        //     // render_pass.set_bind_group(2, &self.light_manager.bind_group, &[]);
-        //     // render_pass.set_bind_group(2, &self.transform_bind_group, &[offset]);
-        //
-        //     render_pass.set_bind_group(3, &material.bind_group, &[]);
-        //
-        //     // 创建pipeline 布局等等，设置buffer之类
-        //     render_pass.draw_indexed(0..mesh.index_count, 0, 0..1);
-        // }
+        used_resources
     }
 }

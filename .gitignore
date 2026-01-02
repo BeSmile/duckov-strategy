@@ -42,3 +42,7 @@ next-env.d.ts
 .idea/
 
 **/target/
+
+# wasm build artifacts (now built to public/wasm)
+wgpu-renderer/pkg/
+savefile-parse/pkg/

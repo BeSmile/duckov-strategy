@@ -2925,6 +2925,7 @@ dependencies = [
  "image",
  "js-sys",
  "log",
+ "once_cell",
  "pollster",
  "regex",
  "reqwest",
