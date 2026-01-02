@@ -569,6 +569,457 @@ impl Mesh{
         }
     }
 
+    /// Create default Plane mesh (10x10 units, 10x10 segments)
+    pub fn create_default_plane(
+        id: &MeshId,
+        device: &Device,
+        scene: &Scene,
+        material: &Material,
+        config: &SurfaceConfiguration,
+    ) -> Mesh {
+        let width = 10.0;
+        let height = 10.0;
+        let segments_x = 10;
+        let segments_y = 10;
+        let width_half = width / 2.0;
+        let height_half = height / 2.0;
+        let segment_width = width / segments_x as f32;
+        let segment_height = height / segments_y as f32;
+
+        let num_vertices = (segments_x + 1) * (segments_y + 1);
+        let mut vertices: Vec<f32> = Vec::with_capacity(num_vertices as usize * 12);
+        let mut indices: Vec<u16> = Vec::new();
+
+        for y in 0..=segments_y {
+            for x in 0..=segments_x {
+                let x_pos = (x as f32 * segment_width) - width_half;
+                let z_pos = (y as f32 * segment_height) - height_half;
+                
+                // Position
+                vertices.push(x_pos);
+                vertices.push(0.0);
+                vertices.push(z_pos);
+
+                // Normal (Up)
+                vertices.push(0.0);
+                vertices.push(1.0);
+                vertices.push(0.0);
+
+                // Tangent (Right)
+                vertices.push(1.0);
+                vertices.push(0.0);
+                vertices.push(0.0);
+                vertices.push(1.0);
+
+                // UV
+                vertices.push(x as f32 / segments_x as f32);
+                vertices.push(1.0 - (y as f32 / segments_y as f32)); // Flip V to match Unity? Unity Plane V grows same direction as Z?
+                // Unity Plane: (0,0) at min, (1,1) at max.
+                // Our Z grows.
+            }
+        }
+
+        for y in 0..segments_y {
+            for x in 0..segments_x {
+                let a = (segments_x + 1) * y + x;
+                let b = (segments_x + 1) * (y + 1) + x;
+                let c = (segments_x + 1) * (y + 1) + (x + 1);
+                let d = (segments_x + 1) * y + (x + 1);
+
+                indices.push(a as u16);
+                indices.push(d as u16);
+                indices.push(b as u16);
+
+                indices.push(b as u16);
+                indices.push(d as u16);
+                indices.push(c as u16);
+            }
+        }
+
+        Self::create_mesh_from_data(id, "Default_Plane", device, scene, material, config, vertices, indices, AABB::new(Point3::new(0.0, 0.0, 0.0), Point3::new(5.0, 0.0, 5.0)))
+    }
+
+   /// Create default Sphere mesh
+    pub fn create_default_sphere(
+        id: &MeshId,
+        device: &Device,
+        scene: &Scene,
+        material: &Material,
+        config: &SurfaceConfiguration,
+    ) -> Mesh {
+        let radius = 0.5;
+        let lat_segments = 24;
+        let long_segments = 24;
+
+        let mut vertices: Vec<f32> = Vec::new();
+        let mut indices: Vec<u16> = Vec::new();
+
+        for lat in 0..=lat_segments {
+            let theta = lat as f32 * std::f32::consts::PI / lat_segments as f32;
+            let sin_theta = theta.sin();
+            let cos_theta = theta.cos();
+
+            for lon in 0..=long_segments {
+                let phi = lon as f32 * 2.0 * std::f32::consts::PI / long_segments as f32;
+                let sin_phi = phi.sin();
+                let cos_phi = phi.cos();
+
+                let x = cos_phi * sin_theta;
+                let y = cos_theta;
+                let z = sin_phi * sin_theta;
+
+                let u = 1.0 - (lon as f32 / long_segments as f32);
+                let v = lat as f32 / lat_segments as f32;
+
+                // Position
+                vertices.push(x * radius);
+                vertices.push(y * radius);
+                vertices.push(z * radius);
+
+                // Normal
+                vertices.push(x);
+                vertices.push(y);
+                vertices.push(z);
+
+                // Tangent
+                // Tangent is along longitude (derivative wrt phi)
+                // dx/dphi = -sin_phi * sin_theta
+                // dy/dphi = 0
+                // dz/dphi = cos_phi * sin_theta
+                vertices.push(-sin_phi);
+                vertices.push(0.0);
+                vertices.push(cos_phi);
+                vertices.push(1.0);
+
+                // UV
+                vertices.push(u);
+                vertices.push(v);
+            }
+        }
+
+        for lat in 0..lat_segments {
+            for lon in 0..long_segments {
+                let first = (lat * (long_segments + 1)) + lon;
+                let second = first + long_segments + 1;
+
+                indices.push(first as u16);
+                indices.push(second as u16);
+                indices.push((first + 1) as u16);
+
+                indices.push(second as u16);
+                indices.push((second + 1) as u16);
+                indices.push((first + 1) as u16);
+            }
+        }
+
+        Self::create_mesh_from_data(id, "Default_Sphere", device, scene, material, config, vertices, indices, AABB::new(Point3::new(0.0, 0.0, 0.0), Point3::new(0.5, 0.5, 0.5)))
+    }
+
+    /// Create default Capsule mesh
+    pub fn create_default_capsule(
+        id: &MeshId,
+        device: &Device,
+        scene: &Scene,
+        material: &Material,
+        config: &SurfaceConfiguration,
+    ) -> Mesh {
+        let radius = 0.5;
+        let height = 2.0;
+        let segments = 24;
+        let rings_cap = 8;
+        let rings_body = 1; 
+
+        // Helper to add vertex
+        fn add_vertex(vertices: &mut Vec<f32>, x: f32, y: f32, z: f32, nx: f32, ny: f32, nz: f32, u: f32, v: f32) {
+             // Position
+             vertices.push(x);
+             vertices.push(y);
+             vertices.push(z);
+             
+             // Normal
+             vertices.push(nx);
+             vertices.push(ny);
+             vertices.push(nz);
+
+             // Tangent (approximate, planar projection on XZ)
+             let len = (nx * nx + nz * nz).sqrt();
+             if len > 0.001 {
+                vertices.push(-nz / len);
+                vertices.push(0.0);
+                vertices.push(nx / len);
+             } else {
+                 vertices.push(1.0);
+                 vertices.push(0.0);
+                 vertices.push(0.0);
+             }
+             vertices.push(1.0);
+
+             // UV
+             vertices.push(u);
+             vertices.push(v);
+        }
+
+        let cylinder_height = height - 2.0 * radius;
+        let sub_height = cylinder_height;
+        
+        let mut vertices: Vec<f32> = Vec::new();
+        let mut indices: Vec<u16> = Vec::new(); // indices unused in generation logic? No, used at end.
+
+        let rings_total = rings_cap * 2 + 1; // +1 region for body (2 extra rings of vertices? No, standard sphere logic stretches)
+        
+         for r in 0..=rings_total {
+             let v_ratio = r as f32 / rings_total as f32;
+             
+             // Determine phi and y_offset based on r
+             let (phi, y_offset) = if r <= rings_cap {
+                 // Top hemisphere (phi 0 to pi/2)
+                  let p = r as f32 * std::f32::consts::PI / (2.0 * rings_cap as f32);
+                  (p, sub_height / 2.0)
+             } else {
+                 // Bottom hemisphere
+                 // Map (rings_cap + 1) -> PI/2
+                 // Map (rings_total) -> PI
+                 // But wait, the "cylinder" body needs to be represented.
+                 // A simple way is to split the loop.
+                 // But using continuous loop:
+                 // r = rings_cap -> phi = PI/2, y = +half
+                 // r = rings_cap + 1 -> phi = PI/2, y = -half  <-- This creates the cylinder side!
+                 // BUT phi is same, so normals are same.
+                 
+                 let r_local = r - 1; // shift back
+                 let p = r_local as f32 * std::f32::consts::PI / (2.0 * rings_cap as f32);
+                 (p, -sub_height / 2.0)
+             };
+             
+              for s in 0..=segments {
+                 let u_ratio = 1.0 - (s as f32 / segments as f32);
+                 let theta = s as f32 * 2.0 * std::f32::consts::PI / segments as f32;
+                 
+                 let sin_phi = phi.sin();
+                 let cos_phi = phi.cos();
+                 let sin_theta = theta.sin();
+                 let cos_theta = theta.cos();
+                 
+                 let nx = cos_theta * sin_phi;
+                 let ny = cos_phi;
+                 let nz = sin_theta * sin_phi;
+                 
+                 let x = nx * radius;
+                 let y = ny * radius + y_offset;
+                 let z = nz * radius;
+                 
+                add_vertex(&mut vertices, x, y, z, nx, ny, nz, u_ratio, v_ratio);
+             }
+         }
+         
+         // Generate indices
+          for r in 0..rings_total {
+            for s in 0..segments {
+                let first = (r * (segments + 1)) + s;
+                let second = first + segments + 1;
+
+                indices.push(first as u16);
+                indices.push(second as u16);
+                indices.push((first + 1) as u16);
+
+                indices.push(second as u16);
+                indices.push((second + 1) as u16);
+                indices.push((first + 1) as u16);
+            }
+        }
+        
+        Self::create_mesh_from_data(id, "Default_Capsule", device, scene, material, config, vertices, indices, AABB::new(Point3::new(0.0, 0.0, 0.0), Point3::new(0.5, 1.0, 0.5)))
+    }
+    
+    /// Create default Cylinder mesh
+    pub fn create_default_cylinder(
+        id: &MeshId,
+        device: &Device,
+        scene: &Scene,
+        material: &Material,
+        config: &SurfaceConfiguration,
+    ) -> Mesh {
+        let radius = 0.5;
+        let height = 2.0;
+        let segments = 20;
+        
+        let half_height = height / 2.0;
+        
+        let mut vertices: Vec<f32> = Vec::new();
+        let mut indices: Vec<u16> = Vec::new();
+
+        fn add_vertex(vertices: &mut Vec<f32>, x: f32, y: f32, z: f32, nx: f32, ny: f32, nz: f32, u: f32, v: f32) {
+             // Position
+             vertices.push(x);
+             vertices.push(y);
+             vertices.push(z);
+             vertices.push(nx);
+             vertices.push(ny);
+             vertices.push(nz);
+             // Tangent
+             let len = (nx * nx + nz * nz).sqrt();
+             if len > 0.001 {
+                vertices.push(-nz / len);
+                vertices.push(0.0);
+                vertices.push(nx / len);
+             } else {
+                 vertices.push(1.0);
+                 vertices.push(0.0);
+                 vertices.push(0.0);
+             }
+             vertices.push(1.0);
+             // UV
+             vertices.push(u);
+             vertices.push(v);
+        }
+        
+        // Side
+        for s in 0..=segments {
+            let u = 1.0 - (s as f32 / segments as f32);
+            let theta = s as f32 * 2.0 * std::f32::consts::PI / segments as f32;
+            let nx = theta.cos();
+            let nz = theta.sin();
+            let x = nx * radius;
+            let z = nz * radius;
+            
+            // Top edge
+            add_vertex(&mut vertices, x, half_height, z, nx, 0.0, nz, u, 0.0);
+            // Bottom edge
+            add_vertex(&mut vertices, x, -half_height, z, nx, 0.0, nz, u, 1.0);
+        }
+        
+        for s in 0..segments {
+            let top1 = s * 2;
+            let bot1 = s * 2 + 1;
+            let top2 = (s + 1) * 2;
+            let bot2 = (s + 1) * 2 + 1;
+            
+            indices.push(top1 as u16);
+            indices.push(bot2 as u16);
+            indices.push(bot1 as u16);
+
+            indices.push(top1 as u16);
+            indices.push(top2 as u16);
+            indices.push(bot2 as u16);
+        }
+        
+        let offset_cap_top = vertices.len() as u16 / 12;
+        // Top Cap
+        // Center
+        add_vertex(&mut vertices, 0.0, half_height, 0.0, 0.0, 1.0, 0.0, 0.5, 0.5);
+        for s in 0..=segments {
+             let theta = s as f32 * 2.0 * std::f32::consts::PI / segments as f32;
+             let x = theta.cos() * radius;
+             let z = theta.sin() * radius;
+             let u = (theta.cos() + 1.0) * 0.5; // Planar mapping
+             let v = (theta.sin() + 1.0) * 0.5;
+             add_vertex(&mut vertices, x, half_height, z, 0.0, 1.0, 0.0, u, v);
+        }
+        
+        for s in 0..segments {
+            indices.push(offset_cap_top); // Center
+            indices.push(offset_cap_top + 1 + s as u16);
+            indices.push(offset_cap_top + 1 + (s + 1) as u16);
+        }
+        
+        let offset_cap_bot = vertices.len() as u16 / 12;
+        // Bottom Cap
+        add_vertex(&mut vertices, 0.0, -half_height, 0.0, 0.0, -1.0, 0.0, 0.5, 0.5);
+         for s in 0..=segments {
+             let theta = s as f32 * 2.0 * std::f32::consts::PI / segments as f32;
+             let x = theta.cos() * radius;
+             let z = theta.sin() * radius;
+               let u = (theta.cos() + 1.0) * 0.5; 
+             let v = (theta.sin() + 1.0) * 0.5;
+             add_vertex(&mut vertices, x, -half_height, z, 0.0, -1.0, 0.0, u, v);
+        }
+        
+        for s in 0..segments {
+            indices.push(offset_cap_bot); // Center
+            indices.push(offset_cap_bot + 1 + (s + 1) as u16);
+            indices.push(offset_cap_bot + 1 + s as u16);
+        }
+
+         Self::create_mesh_from_data(id, "Default_Cylinder", device, scene, material, config, vertices, indices, AABB::new(Point3::new(0.0, 0.0, 0.0), Point3::new(0.5, 1.0, 0.5)))
+    }
+    
+    // Internal helper for these default meshes
+    fn create_mesh_from_data(
+        id: &MeshId,
+        name: &str,
+        device: &Device,
+        scene: &Scene,
+        material: &Material,
+        config: &SurfaceConfiguration,
+        vertices: Vec<f32>,
+        indices: Vec<u16>,
+        aabb: AABB
+    ) -> Mesh {
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some(&format!("{}_Vertex", name)),
+            contents: bytemuck::cast_slice(&vertices),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some(&format!("{}_Index", name)),
+            contents: bytemuck::cast_slice(&indices),
+            usage: wgpu::BufferUsages::INDEX,
+        });
+
+        let vertex_descriptors = vec![
+            UnityVertexAttributeDescriptor {
+                attribute: UnityVertexAttribute::Position,
+                stream: 0,
+                offset: 0,
+                format: UnityVertexFormat::Float32,
+                dimension: 3,
+            },
+            UnityVertexAttributeDescriptor {
+                attribute: UnityVertexAttribute::Normal,
+                stream: 0,
+                offset: 12,
+                format: UnityVertexFormat::Float32,
+                dimension: 3,
+            },
+            UnityVertexAttributeDescriptor {
+                attribute: UnityVertexAttribute::Tangent,
+                stream: 0,
+                offset: 24,
+                format: UnityVertexFormat::Float32,
+                dimension: 4,
+            },
+            UnityVertexAttributeDescriptor {
+                attribute: UnityVertexAttribute::TexCoord0,
+                stream: 0,
+                offset: 40,
+                format: UnityVertexFormat::Float32,
+                dimension: 2,
+            },
+        ];
+
+        let render_pipeline = Self::create_render_pipeline(
+            device,
+            scene,
+            config,
+            material,
+            &vertex_descriptors,
+            &name.to_string(),
+        );
+
+        Mesh {
+            id: id.clone(),
+            name: name.to_string(),
+            vertex_buffer,
+            index_buffer,
+            index_count: indices.len() as u32,
+            vertex_count: (vertices.len() / 12) as u32,
+            vertex_descriptors,
+            render_pipeline,
+            aabb,
+        }
+    }
+
     // 初始化pipeline 以及各类的布局
     pub async fn from_unity_data(buff: &[u8], id: &MeshId, device: &Device, scene: &Scene, material: &Material, config: &SurfaceConfiguration) -> anyhow::Result<Mesh> {
         let content = std::str::from_utf8(buff)?;

@@ -362,10 +362,21 @@ impl ResourceManager {
             // 10208 Capsule（胶囊体）
             // 10209 Plane（平面，10×10 单位）
             // 10210 Quad（四边形，1×1 单位）
-            // todo 需要处理quad， cube等默认的材质  0000000000000000e000000000000000-> Cube
             let mesh = match (file_id, guid.as_str()) {
                 (10202, "0000000000000000e000000000000000") => {
                     Mesh::create_default_cube(guid, device, scene, material, config)
+                },
+                (10206, "0000000000000000e000000000000000") => {
+                    Mesh::create_default_cylinder(guid, device, scene, material, config)
+                },
+                (10207, "0000000000000000e000000000000000") => {
+                    Mesh::create_default_sphere(guid, device, scene, material, config)
+                },
+                (10208, "0000000000000000e000000000000000") => {
+                    Mesh::create_default_capsule(guid, device, scene, material, config)
+                },
+                (10209, "0000000000000000e000000000000000") => {
+                    Mesh::create_default_plane(guid, device, scene, material, config)
                 },
                 (10210, "0000000000000000e000000000000000") => {
                     Mesh::create_default_quad(guid, device, scene, material, config)
