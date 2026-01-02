@@ -6,9 +6,9 @@ import { useWasm } from '@/app/hooks/useWasm';
 import { MapInfo } from '@/app/utils/wasm-manager';
 import {
     MapLoadingOverlay,
-    SceneLoadingState,
 } from './components/Maploadingoverlay';
 import { cn } from '@/lib/utils';
+import { SceneLoadingState } from '@/public/wasm';
 
 // 辅助函数：判断是否正在处理中（不应被打断）
 const isBusyState = (state: SceneLoadingState): boolean => {
