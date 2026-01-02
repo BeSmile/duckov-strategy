@@ -74,3 +74,10 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add public/wasm/ public/wasm-save/
           git diff --quiet && git diff --staged --quiet || (git commit -m "build: update wasm build artifacts" && git push)
+      - name: Deploy to Vercel
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          npm i -g vercel
+          vercel pull --yes --token=${{ secrets.VERCEL_TOKEN }}
+          vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+          vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}    
