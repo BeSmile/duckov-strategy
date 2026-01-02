@@ -131,7 +131,6 @@ pub fn get_loading_state() -> SceneLoadingState {
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub fn get_loading_progress() -> f32 {
-    info!("Getting progress");
     LOADING_PROGRESS
         .lock()
         .map(|p| p.progress)

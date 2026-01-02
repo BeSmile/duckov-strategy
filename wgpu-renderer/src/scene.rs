@@ -201,6 +201,10 @@ pub struct SceneUniforms {
     pub ambient_intensity: f32, // 替代 _padding1
     pub fog_color: [f32; 3],
     pub fog_density: f32,
+    pub light_direction: [f32; 3],
+    pub _padding2: f32,
+    pub light_color: [f32; 3],
+    pub _padding3: f32,
 }
 
 impl Scene {
@@ -673,11 +677,30 @@ impl Scene {
         self.light_manager.update_buffers(queue);
 
         // 更新场景数据 比如环境光, fog颜色
+        // 更新场景数据 比如环境光, fog颜色
+        let dir_light = self.light_manager.directional_lights.first();
+        let (light_dir, light_col) = if let Some(l) = dir_light {
+             // 归一化光照方向
+             let d = l.direction;
+             let len = (d[0]*d[0] + d[1]*d[1] + d[2]*d[2]).sqrt();
+             if len > 0.0 {
+                 ([d[0]/len, d[1]/len, d[2]/len], l.color)
+             } else {
+                 (l.direction, l.color)
+             }
+        } else {
+            ([-0.3, -1.0, -0.5], [1.0, 1.0, 0.95])
+        };
+
         let scene_uniforms = SceneUniforms {
             ambient_light: self.ambient_light,
             ambient_intensity: 0.2,
             fog_color: [0.5, 0.6, 0.7],
             fog_density: 0.0,
+            light_direction: light_dir,
+            _padding2: 0.0,
+            light_color: light_col,
+            _padding3: 0.0,
         };
 
         // scene_uniform_buffer 理解是一个管道buffer

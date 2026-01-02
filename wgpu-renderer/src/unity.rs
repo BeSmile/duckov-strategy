@@ -4,6 +4,7 @@ use std::{fs};
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use cgmath::{Point3, Vector3};
+use log::info;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
@@ -392,6 +393,7 @@ impl UnityScene {
         let mut unity_scene = UnityScene::new();
         use crate::resource::{ResourceManager};
         // // 根据平台使用不同的加载方式
+        info!("Scene 加载: {}", file_path.display());
         let bytes = ResourceManager::load_binary(file_path.to_str().unwrap()).await?;
 
         let reader = BufReader::new(&bytes[..]);

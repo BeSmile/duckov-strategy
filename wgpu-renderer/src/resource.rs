@@ -28,10 +28,10 @@ fn format_url(file_name: &str) -> reqwest::Url {
     let window = web_sys::window().unwrap();
     let location = window.location();
     #[cfg(debug_assertions)]
-    const API_URL: &str = "http://localhost:8000";
+    const API_URL: &str = "http://127.0.0.1:8000";
 
     #[cfg(not(debug_assertions))]
-    const API_URL: &str = "https://localhost:8000";
+    const API_URL: &str = "http://127.0.0.1:8000";
 
     let base = reqwest::Url::parse(&format!(
         "{}/",
@@ -416,7 +416,10 @@ impl ResourceManager {
         let material: Arc<Material> = if let Some(mat) = self.has_material(guid) {
             mat
         } else {
-            let file_path = self.manifest.get(guid).unwrap();
+            let Some(file_path) = self.manifest.get(guid) else {
+                info!("No mesh or material found for {}", guid);
+                return Ok(0);
+            };
             #[cfg(not(target_arch = "wasm32"))]
             let mat_bytes = transfer_file(&file_path).map_err(|e| {
                 println!("transfer_file error: {:?}", e);
