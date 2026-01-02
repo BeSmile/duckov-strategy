@@ -77,6 +77,7 @@ jobs:
       - name: Deploy to Vercel
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
+          rm -rf wgpu-renderer/target savefile-parse/target
           npm i -g vercel
           vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
