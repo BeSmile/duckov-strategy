@@ -13,64 +13,54 @@ import { getItemKey, getItemName, getMonsterName } from '@/app/utils/lang';
 
 import { languageKeys } from '@/app/i18n/config';
 
-export function generateStaticParams() {
-    const items = fetchAllByFile<Item[]>('items.json');
 
-    return languageKeys.flatMap((locale) =>
-        items.map((item) => ({
-            locale,
-            id: item.id.toString(),
-        }))
-    );
-}
-
-export async function generateMetadata(
-    props: PageProps<'/[locale]/inventory/[id]'> & PageParamsProps
-): Promise<Metadata> {
-    const { id, locale } = await props.params;
-    setRequestLocale(locale);
-    const t = await getTranslations({ locale });
-    const items = fetchAllByFile<Item[]>('items.json');
-    const item = items.find((item) => item.id === Number(id));
-
-    if (!item) {
-        return {
-            title: t('seo.item_not_found_title'),
-            description: t('seo.item_not_found_description'),
-        };
-    }
-
-    const itemName = getItemName(t, item);
-    const itemDescription = getItemKey(t, item, 'description');
-    const itemTags = item.tags.map((tag) => t(`tags.Tag_${tag}`) || tag);
-    const description = t('seo.item_detail_description', {
-        name: itemName,
-        description: itemDescription,
-        price: item.priceEach.toString(),
-        stack: item.maxStackCount.toString(),
-    });
-
-    const baseKeywords = t('seo.item_detail_keywords').split(',');
-
-    return {
-        title: itemName,
-        description,
-        keywords: [itemName, ...itemTags, ...baseKeywords],
-        openGraph: {
-            title: `${itemName} | ${t('seo.site_name')}`,
-            description: itemDescription,
-            type: 'article',
-            images: [
-                {
-                    url: `/images/${item.icon}`,
-                    width: 256,
-                    height: 256,
-                    alt: itemName,
-                },
-            ],
-        },
-    };
-}
+// export async function generateMetadata(
+//     props: PageProps<'/[locale]/inventory/[id]'> & PageParamsProps
+// ): Promise<Metadata> {
+//     const { id, locale } = await props.params;
+//     setRequestLocale(locale);
+//     const t = await getTranslations({ locale });
+//     const items = fetchAllByFile<Item[]>('items.json');
+//     const item = items.find((item) => item.id === Number(id));
+//
+//     if (!item) {
+//         return {
+//             title: t('seo.item_not_found_title'),
+//             description: t('seo.item_not_found_description'),
+//         };
+//     }
+//
+//     const itemName = getItemName(t, item);
+//     const itemDescription = getItemKey(t, item, 'description');
+//     const itemTags = item.tags.map((tag) => t(`tags.Tag_${tag}`) || tag);
+//     const description = t('seo.item_detail_description', {
+//         name: itemName,
+//         description: itemDescription,
+//         price: item.priceEach.toString(),
+//         stack: item.maxStackCount.toString(),
+//     });
+//
+//     const baseKeywords = t('seo.item_detail_keywords').split(',');
+//
+//     return {
+//         title: itemName,
+//         description,
+//         keywords: [itemName, ...itemTags, ...baseKeywords],
+//         openGraph: {
+//             title: `${itemName} | ${t('seo.site_name')}`,
+//             description: itemDescription,
+//             type: 'article',
+//             images: [
+//                 {
+//                     url: `/images/${item.icon}`,
+//                     width: 256,
+//                     height: 256,
+//                     alt: itemName,
+//                 },
+//             ],
+//         },
+//     };
+// }
 
 export default async function ItemDetailPage(
     props: PageProps<'/[locale]/inventory/[id]'> & PageParamsProps
@@ -274,4 +264,21 @@ export default async function ItemDetailPage(
     );
 }
 
-export const dynamic = 'force-static';
+// export const dynamic = 'force-static';
+export const dynamicParams = true;
+
+//
+// export function generateStaticParams() {
+//     const items = fetchAllByFile<Item[]>('items.json');
+//
+//     return languageKeys.flatMap((locale) =>
+//         items.map((item) => ({
+//             locale,
+//             id: item.id.toString(),
+//         }))
+//     );
+// }
+
+export async function generateStaticParams() {
+    return [];
+}
