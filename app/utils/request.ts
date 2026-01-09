@@ -40,8 +40,15 @@ export function generateKeyValueFetch<T extends EnumKeys>(key: T) {
     };
 }
 
+const fileCache: Record<string, any> = {};
+
 export function fetchAllByFile<T>(file: string): T {
+    if (fileCache[file]) {
+        return fileCache[file] as T;
+    }
     const filePath = path.join(process.cwd(), 'public', file);
     const jsonData = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(jsonData) as T;
+    const data = JSON.parse(jsonData) as T;
+    fileCache[file] = data;
+    return data;
 }
