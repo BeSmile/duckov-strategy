@@ -21,5 +21,3 @@
 - 扩展ResourceManager
 - 实现GPU资源卸载
 - LRU淘汰策略
-
-guid映射的路径，需要在提取中进行空格处理
