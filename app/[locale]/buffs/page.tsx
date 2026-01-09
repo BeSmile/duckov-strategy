@@ -1,13 +1,14 @@
 import React from 'react';
 import { fetchAllByFile } from '@/app/utils/request';
 import { GameAssets } from '@/app/types/game';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { generateStaticParams } from '@/lib/getStatic';
 import { PageParamsProps } from '@/app/types/router';
 
 export default async function Buff({ params }: PageParamsProps) {
     const allBuffs = fetchAllByFile<GameAssets>('game_assets.json');
     const { locale } = await params;
+    setRequestLocale(locale);
     const buffs = allBuffs.buffs;
     const t = await getTranslations({ locale });
 
@@ -48,3 +49,4 @@ export default async function Buff({ params }: PageParamsProps) {
 
 export { generateStaticParams };
 export const dynamicParams = false;
+export const dynamic = 'force-static';

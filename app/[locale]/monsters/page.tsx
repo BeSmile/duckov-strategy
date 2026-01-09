@@ -3,14 +3,15 @@ import { MonsterData } from '@/app/types/monster';
 import { Item } from '@/app/types/item';
 import { fetchAllByFile } from '@/app/utils/request';
 import { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { generateStaticParams } from '@/lib/getStatic';
 import { Language } from '@/app/i18n/config';
 import { PageParamsProps } from '@/app/types/router';
 
 export async function generateMetadata({ params }: PageParamsProps): Promise<Metadata> {
     const { locale } = await params;
-    const t = await getTranslations({locale});
+    setRequestLocale(locale);
+    const t = await getTranslations({ locale });
     const lootData = fetchAllByFile<MonsterData>('loot.json');
     const monstersCount = Object.keys(lootData).length;
 
@@ -38,6 +39,7 @@ export default async function MonstersPage({
     params: Promise<{ locale: Language }>;
 }) {
     const { locale: lang } = await params;
+    setRequestLocale(lang);
     const t = await getTranslations({ locale: lang });
     // Load loot.json
     const lootData = fetchAllByFile<MonsterData>('loot.json');
@@ -81,3 +83,4 @@ export default async function MonstersPage({
 export { generateStaticParams };
 
 // export const dynamicParams = false;
+export const dynamic = 'force-static';

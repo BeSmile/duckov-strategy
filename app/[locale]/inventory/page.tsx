@@ -5,7 +5,7 @@ import { Item } from '@/app/types/item';
 import { fetchAllByFile } from '@/app/utils/request';
 import { Suspense } from 'react';
 import { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Language } from '@/app/i18n/config';
 import { PageParams } from '@/app/types/router';
 
@@ -18,6 +18,7 @@ interface HomeProps {
 
 export async function generateMetadata({ searchParams, params }: HomeProps): Promise<Metadata> {
     const { locale } = await params;
+    setRequestLocale(locale);
     const t = await getTranslations({ locale });
     const sParams = await searchParams;
     const allData = fetchAllByFile<Item[]>('items.json');
@@ -66,6 +67,7 @@ export default async function Home({ searchParams, params }: HomeProps) {
     const sParams = await searchParams;
     const localParams = await params;
     const locale = localParams?.locale as Language;
+    setRequestLocale(locale);
     const currentPage = Number(sParams.page) || 1;
     const searchTerm = sParams.search?.toLowerCase() || '';
     const selectedTags = sParams.tags?.split(',').filter(Boolean) || [];

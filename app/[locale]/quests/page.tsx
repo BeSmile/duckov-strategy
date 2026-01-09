@@ -8,7 +8,7 @@ import { Metadata } from 'next';
 import { generateStaticParams } from '@/lib/getStatic';
 import { QuestType } from '@/app/constants/quest';
 import { PageParams } from '@/app/types/router';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 interface QuestsPageProps {
     searchParams: Promise<{
@@ -20,7 +20,8 @@ interface QuestsPageProps {
 
 export async function generateMetadata({ params }: QuestsPageProps): Promise<Metadata> {
     const { locale } = await params;
-    const t = await getTranslations({locale});
+    setRequestLocale(locale);
+    const t = await getTranslations({ locale });
 
     const title = t('seo.quests_title');
     const description = t('seo.quests_description');
@@ -41,6 +42,7 @@ export async function generateMetadata({ params }: QuestsPageProps): Promise<Met
 export default async function QuestsPage({ searchParams, params }: QuestsPageProps) {
     const sParams = await searchParams;
     const { locale } = await params;
+    setRequestLocale(locale);
     const searchTerm = sParams.search || '';
     const viewMode = sParams.view || QuestType.LIST;
     const questData = fetchAllByFile<IQuestGraph>('quest.json');
@@ -95,8 +97,8 @@ export default async function QuestsPage({ searchParams, params }: QuestsPagePro
                         }}
                     />
                 ) : (
-                    <div className="text-center py-20 " style={{height: 800}}>
-                        <QuestGraph nodes={questData.nodes} edges={questData.connections}/>
+                    <div className="text-center py-20 " style={{ height: 800 }}>
+                        <QuestGraph nodes={questData.nodes} edges={questData.connections} />
                     </div>
                 )}
             </main>

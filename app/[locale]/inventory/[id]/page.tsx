@@ -3,7 +3,7 @@ import { Item, PrefabItem } from '@/app/types/item';
 import { MonsterData } from '@/app/types/monster';
 import { fetchAllByFile } from '@/app/utils/request';
 import { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { getQualityConfig } from '@/app/constants/quality';
 import { findMonsterDropSources } from '@/app/utils/monster';
 import { PageParamsProps } from '@/app/types/router';
@@ -11,11 +11,25 @@ import { GoBack } from '@/app/components/ClientProxy';
 import { ItemAttribute, ItemConstant, ItemSlots } from '@/app/components/ItemConstant';
 import { getItemKey, getItemName, getMonsterName } from '@/app/utils/lang';
 
+import { languageKeys } from '@/app/i18n/config';
+
+export function generateStaticParams() {
+    const items = fetchAllByFile<Item[]>('items.json');
+
+    return languageKeys.flatMap((locale) =>
+        items.map((item) => ({
+            locale,
+            id: item.id.toString(),
+        }))
+    );
+}
+
 export async function generateMetadata(
     props: PageProps<'/[locale]/inventory/[id]'> & PageParamsProps
 ): Promise<Metadata> {
     const { id, locale } = await props.params;
-    const t = await getTranslations({locale });
+    setRequestLocale(locale);
+    const t = await getTranslations({ locale });
     const items = fetchAllByFile<Item[]>('items.json');
     const item = items.find((item) => item.id === Number(id));
 
@@ -43,7 +57,7 @@ export async function generateMetadata(
         description,
         keywords: [itemName, ...itemTags, ...baseKeywords],
         openGraph: {
-            title: `${itemName} | ${ t('seo.site_name')}`,
+            title: `${itemName} | ${t('seo.site_name')}`,
             description: itemDescription,
             type: 'article',
             images: [
@@ -62,7 +76,8 @@ export default async function ItemDetailPage(
     props: PageProps<'/[locale]/inventory/[id]'> & PageParamsProps
 ) {
     const { id, locale } = await props.params;
-    const t = await getTranslations({locale});
+    setRequestLocale(locale);
+    const t = await getTranslations({ locale });
 
     const itemPrefab = fetchAllByFile<PrefabItem>(`prefabs/${id}.prefab`);
 
@@ -73,7 +88,7 @@ export default async function ItemDetailPage(
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
                 <main className="max-w-4xl mx-auto">
                     <div className="mb-6">
-                        <GoBack/>
+                        <GoBack />
                     </div>
                     <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center">
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -110,7 +125,7 @@ export default async function ItemDetailPage(
             <main className="max-w-4xl mx-auto">
                 {/* Back Button */}
                 <div className="mb-6">
-                    <GoBack/>
+                    <GoBack />
                 </div>
 
                 {/* Item Detail Card */}
@@ -143,7 +158,7 @@ export default async function ItemDetailPage(
                         {/* Description */}
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                                { t('inventory.description')}
+                                {t('inventory.description')}
                             </h2>
                             <p className="text-gray-700 dark:text-gray-300">
 
@@ -155,7 +170,7 @@ export default async function ItemDetailPage(
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                                    { t('inventory.price')}
+                                    {t('inventory.price')}
                                 </p>
                                 <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                                     {item.value}
@@ -163,7 +178,7 @@ export default async function ItemDetailPage(
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                                    { t('inventory.max_stack')}
+                                    {t('inventory.max_stack')}
                                 </p>
                                 <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                                     {item.maxStackCount}
@@ -173,7 +188,7 @@ export default async function ItemDetailPage(
                             {item?.weight && (
                                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                                        { t('inventory.weight')}
+                                        {t('inventory.weight')}
                                     </p>
                                     <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                                         {item.weight}Kg
@@ -184,14 +199,14 @@ export default async function ItemDetailPage(
                                 <ItemConstant {...gunItem} locale={locale} />
                             )}
                         </div>
-                        {isGunPrefab && slots.length >0 && (
-                            <ItemSlots locale={locale} slots={gunItem?.slots?.list?.map(item => item.key) || []}/>
+                        {isGunPrefab && slots.length > 0 && (
+                            <ItemSlots locale={locale} slots={gunItem?.slots?.list?.map(item => item.key) || []} />
                         )}
                         {/* Tags */}
                         {item.tags.length > 0 && (
                             <div>
                                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                                    { t('inventory.tags')}
+                                    {t('inventory.tags')}
                                 </h2>
                                 <div className="flex flex-wrap gap-2">
                                     {item.tags.map((tag) => (
@@ -249,7 +264,7 @@ export default async function ItemDetailPage(
                             )}
                         </div>
 
-                        {attrs.length>0 &&(
+                        {attrs.length > 0 && (
                             <ItemAttribute locale={locale} attrs={attrs} />
                         )}
                     </div>
@@ -258,3 +273,5 @@ export default async function ItemDetailPage(
         </div>
     );
 }
+
+export const dynamic = 'force-static';

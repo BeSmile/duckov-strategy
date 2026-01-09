@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
         }
         return config;
     },
-    compress: true, // 启用 gzip 压缩
+    compress: false, // 禁用 gzip 压缩，由 Vercel Edge 处理
     images: {
         unoptimized: true, // 完全禁用 Vercel 优化
         minimumCacheTTL: 2678400,
@@ -42,6 +42,7 @@ const nextConfig: NextConfig = {
             },
         ];
     },
+    output: 'standalone',
 };
 
 const withNextIntl = createNextIntlPlugin();
