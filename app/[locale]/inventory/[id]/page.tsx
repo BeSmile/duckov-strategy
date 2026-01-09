@@ -268,17 +268,16 @@ export default async function ItemDetailPage(
 export const dynamicParams = true;
 
 //
-// export function generateStaticParams() {
-//     const items = fetchAllByFile<Item[]>('items.json');
-//
-//     return languageKeys.flatMap((locale) =>
-//         items.map((item) => ({
-//             locale,
-//             id: item.id.toString(),
-//         }))
-//     );
-// }
+export function generateStaticParams() {
+    const items = fetchAllByFile<Item[]>('items.json');
 
-export async function generateStaticParams() {
-    return [];
+    return languageKeys.flatMap((locale) =>
+        items.map((item) => ({
+            locale,
+            id: item.id.toString(),
+        }))
+    );
 }
+
+// 永久缓存
+export const revalidate = false;
